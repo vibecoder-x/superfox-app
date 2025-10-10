@@ -44,7 +44,7 @@ const featuredStories = [
     image: '/images/Superfox exploring a magical forest.png',
     duration: '8 min',
     category: 'Adventure',
-    audioPath: '/audio/intro/The%20Magical%20Forest%20story.mp3',
+    audioPath: '/audio/intro/The Magical Forest story.mp3',
   },
   {
     title: 'Superfox Learns to Share',
