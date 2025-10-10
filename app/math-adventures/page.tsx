@@ -25,25 +25,82 @@ const activities = [
     id: 'tutor',
     title: 'Math Tutor',
     description: 'Learn step-by-step with Superfox as your teacher!',
+    emoji: '👨‍🏫',
     icon: <FaGraduationCap className="text-6xl" />,
     color: 'from-blue-400 to-blue-600',
-    bgPattern: 'from-blue-50 to-indigo-50',
+    topics: ['Addition', 'Subtraction', 'Counting', 'Number Recognition'],
   },
   {
     id: 'quiz',
     title: 'Math Quiz',
     description: 'Test your skills and earn stars!',
+    emoji: '📝',
     icon: <FaChartLine className="text-6xl" />,
     color: 'from-purple-400 to-purple-600',
-    bgPattern: 'from-purple-50 to-pink-50',
+    topics: ['Easy Quiz', 'Medium Quiz', 'Hard Quiz', 'Mixed Challenge'],
   },
   {
     id: 'games',
     title: 'Number Games',
     description: 'Fun counting and matching games!',
+    emoji: '🎮',
     icon: <FaGamepad className="text-6xl" />,
     color: 'from-green-400 to-green-600',
-    bgPattern: 'from-green-50 to-teal-50',
+    topics: ['Counting Game', 'Pattern Match', 'Shape Sorting', 'Skip Counting'],
+  },
+  {
+    id: 'addition',
+    title: 'Addition Fun',
+    description: 'Add numbers and make them bigger!',
+    emoji: '➕',
+    icon: <div className="text-6xl">➕</div>,
+    color: 'from-orange-400 to-red-500',
+    topics: ['Add to 10', 'Add to 20', 'Add to 50', 'Add to 100'],
+  },
+  {
+    id: 'subtraction',
+    title: 'Subtraction Zone',
+    description: 'Take away numbers and see what's left!',
+    emoji: '➖',
+    icon: <div className="text-6xl">➖</div>,
+    color: 'from-pink-400 to-rose-600',
+    topics: ['Subtract from 10', 'Subtract from 20', 'Subtract from 50'],
+  },
+  {
+    id: 'multiplication',
+    title: 'Times Tables',
+    description: 'Learn to multiply with fun patterns!',
+    emoji: '✖️',
+    icon: <div className="text-6xl">✖️</div>,
+    color: 'from-cyan-400 to-blue-600',
+    topics: ['2× Table', '5× Table', '10× Table', 'Mix & Match'],
+  },
+  {
+    id: 'shapes',
+    title: 'Shapes & Geometry',
+    description: 'Discover circles, squares, and more!',
+    emoji: '🔷',
+    icon: <div className="text-6xl">🔷</div>,
+    color: 'from-teal-400 to-green-600',
+    topics: ['2D Shapes', '3D Shapes', 'Symmetry', 'Angles'],
+  },
+  {
+    id: 'patterns',
+    title: 'Patterns & Sequences',
+    description: 'Find the pattern and complete it!',
+    emoji: '🎨',
+    icon: <div className="text-6xl">🎨</div>,
+    color: 'from-indigo-400 to-purple-600',
+    topics: ['Color Patterns', 'Number Patterns', 'Shape Patterns'],
+  },
+  {
+    id: 'fractions',
+    title: 'Fractions',
+    description: 'Share equally and learn about parts!',
+    emoji: '🍕',
+    icon: <div className="text-6xl">🍕</div>,
+    color: 'from-yellow-400 to-orange-600',
+    topics: ['Halves', 'Quarters', 'Thirds', 'Simple Fractions'],
   },
 ];
 
@@ -122,12 +179,23 @@ export default function MathAdventuresPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-10 left-10 text-8xl">🔢</div>
+      {/* Background decoration - Math Emojis Everywhere! */}
+      <div className="absolute inset-0 opacity-10 overflow-hidden">
+        <div className="absolute top-10 left-10 text-8xl animate-bounce">🔢</div>
         <div className="absolute top-20 right-20 text-8xl">➕</div>
         <div className="absolute bottom-20 left-20 text-8xl">➖</div>
-        <div className="absolute bottom-10 right-10 text-8xl">🎯</div>
+        <div className="absolute bottom-10 right-10 text-8xl animate-pulse">🎯</div>
+        <div className="absolute top-40 left-1/4 text-7xl">✖️</div>
+        <div className="absolute top-60 right-1/3 text-7xl">➗</div>
+        <div className="absolute bottom-40 right-1/4 text-7xl">🧮</div>
+        <div className="absolute top-1/3 left-10 text-6xl">📐</div>
+        <div className="absolute bottom-1/3 right-10 text-6xl">📏</div>
+        <div className="absolute top-1/2 right-20 text-8xl">🔷</div>
+        <div className="absolute bottom-1/2 left-1/3 text-7xl">🔶</div>
+        <div className="absolute top-1/4 right-1/2 text-6xl">⭐</div>
+        <div className="absolute bottom-1/4 left-1/2 text-6xl">💯</div>
+        <div className="absolute top-3/4 right-1/4 text-7xl">🎨</div>
+        <div className="absolute top-16 left-1/2 text-6xl">🍕</div>
       </div>
 
       <div className="container mx-auto px-4 py-8 relative z-10">
@@ -146,18 +214,33 @@ export default function MathAdventuresPage() {
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
-          <motion.h1
-            className="text-5xl md:text-6xl font-extrabold text-blue-600 mb-4 baloo"
+          <motion.div
+            className="flex items-center justify-center gap-4 mb-4"
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            Math Adventures 🧮
-          </motion.h1>
-          <p className="text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto">
-            Count, add, and solve fun math puzzles with Superfox!
+            <span className="text-6xl">🧮</span>
+            <motion.h1
+              className="text-5xl md:text-7xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent baloo"
+            >
+              Math Adventures
+            </motion.h1>
+            <span className="text-6xl">🚀</span>
+          </motion.div>
+          <p className="text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto mb-4">
+            🌟 Count, add, multiply, and solve fun math puzzles with Superfox! 🌟
           </p>
+          <div className="flex flex-wrap justify-center gap-3 text-4xl">
+            <span className="animate-bounce">➕</span>
+            <span className="animate-pulse">➖</span>
+            <span className="animate-bounce">✖️</span>
+            <span className="animate-pulse">➗</span>
+            <span className="animate-bounce">🔢</span>
+            <span className="animate-pulse">🎯</span>
+            <span className="animate-bounce">💯</span>
+          </div>
         </motion.div>
 
         {/* Superfox Character */}
@@ -185,46 +268,58 @@ export default function MathAdventuresPage() {
         {/* Activity Selection or Active Activity */}
         {!activeActivity ? (
           <>
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto mb-16">
               {activities.map((activity, index) => (
                 <motion.div
                   key={activity.id}
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.15, duration: 0.5 }}
-                  whileHover={{ scale: 1.05, y: -10 }}
+                  transition={{ delay: index * 0.08, duration: 0.5 }}
+                  whileHover={{ scale: 1.05, y: -8 }}
                   className="relative group cursor-pointer"
                   onClick={() => handleActivityStart(activity.id as ActivityType)}
                 >
                   <div
-                    className={`bg-gradient-to-br ${activity.color} rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden`}
+                    className={`bg-gradient-to-br ${activity.color} rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden min-h-[320px] flex flex-col`}
                   >
                     {/* Background pattern */}
                     <div className="absolute inset-0 opacity-10">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16" />
-                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12" />
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-white rounded-full -translate-y-12 translate-x-12" />
+                      <div className="absolute bottom-0 left-0 w-20 h-20 bg-white rounded-full translate-y-10 -translate-x-10" />
                     </div>
 
                     {/* Content */}
-                    <div className="relative z-10">
-                      {/* Icon */}
-                      <div className="text-white mb-6 flex justify-center">
-                        {activity.icon}
+                    <div className="relative z-10 flex-1 flex flex-col">
+                      {/* Emoji Badge */}
+                      <div className="text-6xl mb-4 text-center filter drop-shadow-lg">
+                        {activity.emoji}
                       </div>
 
                       {/* Title */}
-                      <h3 className="text-3xl font-bold text-white mb-3 baloo text-center">
+                      <h3 className="text-2xl font-bold text-white mb-2 baloo text-center">
                         {activity.title}
                       </h3>
 
                       {/* Description */}
-                      <p className="text-white/90 text-center mb-6 text-lg">
+                      <p className="text-white/90 text-center mb-4 text-sm">
                         {activity.description}
                       </p>
 
+                      {/* Topics Pills */}
+                      <div className="flex flex-wrap gap-2 justify-center mb-4">
+                        {activity.topics.map((topic, idx) => (
+                          <span
+                            key={idx}
+                            className="bg-white/30 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full font-semibold"
+                          >
+                            {topic}
+                          </span>
+                        ))}
+                      </div>
+
                       {/* Start Button */}
-                      <button className="w-full bg-white text-gray-800 font-bold py-4 px-6 rounded-full hover:bg-yellow-300 transition-colors duration-300 transform hover:scale-105">
-                        Start Learning!
+                      <button className="w-full bg-white text-gray-800 font-bold py-3 px-6 rounded-full hover:bg-yellow-300 transition-colors duration-300 transform hover:scale-105 mt-auto">
+                        Start Learning! 🚀
                       </button>
                     </div>
                   </div>
