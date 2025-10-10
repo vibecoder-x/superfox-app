@@ -12,7 +12,9 @@
       "Bash(chmod:*)",
       "Bash(./rename-audio.sh:*)",
       "Bash(python3:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)"
     ],
     "deny": [],
     "ask": []

@@ -84,8 +84,8 @@ export const mathAudioFiles = {
     '/audio/math-adventures/correct2.mp3',
     '/audio/math-adventures/correct3.mp3',
   ],
-  welcome: '/audio/intro/superfox%20say%20welcome%20to%20website%20visitor.mp3',
-  story: '/audio/intro/The%20Magical%20Forest%20story.mp3',
+  welcome: '/audio/intro/superfox say welcome to website visitor.mp3',
+  story: '/audio/intro/The Magical Forest.mp3',
 };
 
 export const getRandomAudio = (audioArray: string[]) => {
