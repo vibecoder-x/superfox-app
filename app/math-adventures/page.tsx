@@ -15,6 +15,9 @@ import SkipCounting from '@/components/math/SkipCounting';
 import ShapesGeometry from '@/components/math/ShapesGeometry';
 import PatternsSequences from '@/components/math/PatternsSequences';
 import FractionsFun from '@/components/math/FractionsFun';
+import MoneyMath from '@/components/math/MoneyMath';
+import TimeClock from '@/components/math/TimeClock';
+import MeasurementLab from '@/components/math/MeasurementLab';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -316,6 +319,12 @@ export default function MathAdventuresPage() {
         return <PatternsSequences />;
       case 'fractions':
         return <FractionsFun />;
+      case 'money':
+        return <MoneyMath />;
+      case 'time':
+        return <TimeClock />;
+      case 'measurement':
+        return <MeasurementLab />;
       default:
         // Coming soon message for new modules
         const currentActivity = activities.find(a => a.id === activeActivity);
