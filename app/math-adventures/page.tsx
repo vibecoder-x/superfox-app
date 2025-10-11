@@ -18,6 +18,13 @@ import FractionsFun from '@/components/math/FractionsFun';
 import MoneyMath from '@/components/math/MoneyMath';
 import TimeClock from '@/components/math/TimeClock';
 import MeasurementLab from '@/components/math/MeasurementLab';
+import PlaceValue from '@/components/math/PlaceValue';
+import OddEvenNumbers from '@/components/math/OddEvenNumbers';
+import CompareNumbers from '@/components/math/CompareNumbers';
+import EstimationStation from '@/components/math/EstimationStation';
+import WordProblems from '@/components/math/WordProblems';
+import GraphsData from '@/components/math/GraphsData';
+import Decimals from '@/components/math/Decimals';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -325,6 +332,20 @@ export default function MathAdventuresPage() {
         return <TimeClock />;
       case 'measurement':
         return <MeasurementLab />;
+      case 'place-value':
+        return <PlaceValue />;
+      case 'odd-even':
+        return <OddEvenNumbers />;
+      case 'comparing':
+        return <CompareNumbers />;
+      case 'estimation':
+        return <EstimationStation />;
+      case 'word-problems':
+        return <WordProblems />;
+      case 'data-graphs':
+        return <GraphsData />;
+      case 'decimals':
+        return <Decimals />;
       default:
         // Coming soon message for new modules
         const currentActivity = activities.find(a => a.id === activeActivity);
