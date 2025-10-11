@@ -6,6 +6,9 @@ import { FaGraduationCap, FaGamepad, FaChartLine, FaTimes, FaHome } from 'react-
 import MathTutor from '@/components/math/MathTutor';
 import MathQuiz from '@/components/math/MathQuiz';
 import NumberGames from '@/components/math/NumberGames';
+import AdditionFun from '@/components/math/AdditionFun';
+import SubtractionZone from '@/components/math/SubtractionZone';
+import MultiplicationTables from '@/components/math/MultiplicationTables';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -289,6 +292,12 @@ export default function MathAdventuresPage() {
         return <MathQuiz />;
       case 'games':
         return <NumberGames />;
+      case 'addition':
+        return <AdditionFun />;
+      case 'subtraction':
+        return <SubtractionZone />;
+      case 'multiplication':
+        return <MultiplicationTables />;
       default:
         // Coming soon message for new modules
         const currentActivity = activities.find(a => a.id === activeActivity);
@@ -315,7 +324,7 @@ export default function MathAdventuresPage() {
               ))}
             </div>
             <p className="text-gray-500 text-lg">
-              ⭐ In the meantime, try our Math Tutor, Math Quiz, or Number Games! ⭐
+              ⭐ Try our working modules: Math Tutor, Math Quiz, Number Games, Addition, Subtraction, or Multiplication! ⭐
             </p>
           </div>
         );
