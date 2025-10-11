@@ -60,7 +60,7 @@ const activities = [
   {
     id: 'subtraction',
     title: 'Subtraction Zone',
-    description: 'Take away numbers and see what's left!',
+    description: 'Take away numbers and see what\'s left!',
     emoji: '➖',
     icon: <div className="text-6xl">➖</div>,
     color: 'from-pink-400 to-rose-600',
