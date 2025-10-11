@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaTrash, FaTimes, FaDownload } from 'react-icons/fa';
+import { FaTrash, FaTimes, FaDownload, FaSync } from 'react-icons/fa';
 
 type Artwork = {
   id: string;
@@ -56,7 +56,18 @@ export default function ArtGallery() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-6"
       >
-        <h1 className="text-5xl font-bold text-pink-600 mb-2 baloo">🖼️ Art Gallery</h1>
+        <div className="flex items-center justify-center gap-4 mb-2">
+          <h1 className="text-5xl font-bold text-pink-600 baloo">🖼️ Art Gallery</h1>
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: 180 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={loadArtworks}
+            className="text-2xl text-pink-600 hover:text-pink-700 p-2 rounded-full bg-pink-100 hover:bg-pink-200"
+            title="Refresh gallery"
+          >
+            <FaSync />
+          </motion.button>
+        </div>
         <p className="text-xl text-gray-700">Your amazing artwork collection!</p>
       </motion.div>
 

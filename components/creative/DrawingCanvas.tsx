@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaPaintBrush, FaEraser, FaCircle, FaSquare, FaStar, FaUndo, FaRedo, FaDownload, FaTrash, FaImage } from 'react-icons/fa';
+import { FaPaintBrush, FaEraser, FaCircle, FaSquare, FaStar, FaUndo, FaRedo, FaDownload, FaTrash, FaImage, FaSave } from 'react-icons/fa';
 
 type Tool = 'brush' | 'eraser' | 'circle' | 'square' | 'triangle' | 'star' | 'stamp';
 type DrawingAction = {
@@ -30,6 +30,7 @@ export default function DrawingCanvas() {
   const [showStamps, setShowStamps] = useState(false);
   const [selectedStamp, setSelectedStamp] = useState('🌟');
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -107,6 +108,37 @@ export default function DrawingCanvas() {
     link.download = `superfox-artwork-${Date.now()}.png`;
     link.href = canvas.toDataURL();
     link.click();
+  };
+
+  const saveToGallery = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      const artwork = {
+        id: `artwork-${Date.now()}`,
+        dataUrl: dataUrl,
+        timestamp: Date.now()
+      };
+
+      // Get existing artworks
+      const saved = localStorage.getItem('superfox-artworks');
+      const artworks = saved ? JSON.parse(saved) : [];
+
+      // Add new artwork
+      artworks.push(artwork);
+
+      // Save back to localStorage
+      localStorage.setItem('superfox-artworks', JSON.stringify(artworks));
+
+      // Show confirmation
+      setShowSaveConfirmation(true);
+      setTimeout(() => setShowSaveConfirmation(false), 3000);
+    } catch (error) {
+      console.error('Failed to save artwork:', error);
+      alert('Failed to save artwork to gallery');
+    }
   };
 
   const getMousePos = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -536,7 +568,30 @@ export default function DrawingCanvas() {
           >
             <FaDownload /> Download
           </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={saveToGallery}
+            className="px-6 py-3 bg-purple-500 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-purple-600"
+          >
+            <FaSave /> Save to Gallery
+          </motion.button>
         </div>
+
+        {/* Save Confirmation */}
+        {showSaveConfirmation && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-4 bg-green-100 border-2 border-green-500 rounded-xl p-4 text-center"
+          >
+            <p className="text-green-700 font-bold text-lg">
+              ✅ Artwork saved to gallery!
+            </p>
+          </motion.div>
+        )}
       </div>
 
       {/* Canvas */}
