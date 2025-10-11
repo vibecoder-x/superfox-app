@@ -37,6 +37,7 @@ export default function NumberGames() {
     if (isClient) {
       generateNewGame();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameType, isClient]);
 
   const generateNewGame = () => {

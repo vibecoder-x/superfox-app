@@ -3,9 +3,11 @@ const nextConfig = {
   images: {
     remotePatterns: [],
   },
-  // Allow cross-origin requests from devices on local network during development
-  allowedDevOrigins: ['http://172.20.10.2:3000'],
-  output: 'standalone',
+  reactStrictMode: true,
+  eslint: {
+    // Allow production builds to complete even with ESLint warnings
+    ignoreDuringBuilds: false,
+  },
 };
 
 module.exports = nextConfig;

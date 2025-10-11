@@ -211,7 +211,7 @@ export default function EstimationStation() {
                   </motion.div>
                 ))}
               </div>
-              <p className="text-lg text-gray-600 mt-6">Don\'t count them all! Make a smart guess!</p>
+              <p className="text-lg text-gray-600 mt-6">Don&apos;t count them all! Make a smart guess!</p>
             </div>
           ) : (
             <div>
