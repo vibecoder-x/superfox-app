@@ -9,7 +9,7 @@ import NumberGames from '@/components/math/NumberGames';
 import Image from 'next/image';
 import Link from 'next/link';
 
-type ActivityType = null | 'tutor' | 'quiz' | 'games';
+type ActivityType = null | 'tutor' | 'quiz' | 'games' | 'addition' | 'subtraction' | 'multiplication' | 'division' | 'shapes' | 'patterns' | 'fractions' | 'counting' | 'money' | 'time' | 'measurement' | 'place-value' | 'word-problems' | 'skip-counting' | 'odd-even' | 'comparing' | 'estimation' | 'data-graphs' | 'decimals';
 
 interface UserStats {
   lessonsCompleted: number;
@@ -290,7 +290,35 @@ export default function MathAdventuresPage() {
       case 'games':
         return <NumberGames />;
       default:
-        return null;
+        // Coming soon message for new modules
+        const currentActivity = activities.find(a => a.id === activeActivity);
+        return (
+          <div className="bg-white rounded-3xl p-12 shadow-2xl text-center">
+            <div className="text-9xl mb-6">{currentActivity?.emoji}</div>
+            <h2 className="text-5xl font-bold text-blue-600 mb-4 baloo">
+              {currentActivity?.title}
+            </h2>
+            <p className="text-2xl text-gray-700 mb-8">
+              🚀 This exciting learning module is coming soon! 🚀
+            </p>
+            <p className="text-xl text-gray-600 mb-8">
+              Superfox is working hard to create amazing {currentActivity?.title.toLowerCase()} lessons just for you!
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center mb-8">
+              {currentActivity?.topics.map((topic, idx) => (
+                <span
+                  key={idx}
+                  className="bg-gradient-to-r from-blue-400 to-purple-500 text-white px-6 py-3 rounded-full font-bold text-lg"
+                >
+                  {topic}
+                </span>
+              ))}
+            </div>
+            <p className="text-gray-500 text-lg">
+              ⭐ In the meantime, try our Math Tutor, Math Quiz, or Number Games! ⭐
+            </p>
+          </div>
+        );
     }
   };
 
