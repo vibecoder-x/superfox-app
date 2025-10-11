@@ -40,7 +40,7 @@ const learningModules = [
     color: 'from-pink-400 to-pink-600',
     image: '/images/Superfox and kids drawing together on the floor.png',
     stars: 5,
-    link: '#',
+    link: '/creative-studio',
   },
 ];
 
