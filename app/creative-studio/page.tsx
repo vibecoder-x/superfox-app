@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import DrawingCanvas from '@/components/creative/DrawingCanvas';
 import ArtGallery from '@/components/creative/ArtGallery';
+import ColoringBook from '@/components/creative/ColoringBook';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
 
-type View = 'hub' | 'draw' | 'gallery';
+type View = 'hub' | 'draw' | 'gallery' | 'coloring';
 
 export default function CreativeStudio() {
   const [currentView, setCurrentView] = useState<View>('hub');
@@ -48,6 +49,24 @@ export default function CreativeStudio() {
     );
   }
 
+  if (currentView === 'coloring') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50 py-8">
+        <div className="max-w-7xl mx-auto px-4">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setCurrentView('hub')}
+            className="mb-6 px-6 py-3 bg-white text-orange-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl"
+          >
+            <FaArrowLeft /> Back to Hub
+          </motion.button>
+          <ColoringBook />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-12">
       <div className="max-w-6xl mx-auto px-4">
@@ -77,7 +96,7 @@ export default function CreativeStudio() {
         </motion.div>
 
         {/* Main Menu */}
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
+        <div className="grid md:grid-cols-3 gap-8 mb-12">
           {/* Drawing Canvas Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -103,11 +122,36 @@ export default function CreativeStudio() {
             </div>
           </motion.div>
 
-          {/* Art Gallery Card */}
+          {/* Coloring Books Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
+            whileHover={{ scale: 1.05, y: -10 }}
+            onClick={() => setCurrentView('coloring')}
+            className="bg-gradient-to-br from-orange-400 to-red-600 rounded-3xl p-8 cursor-pointer shadow-2xl hover:shadow-3xl transition-all"
+          >
+            <div className="text-center text-white">
+              <div className="text-8xl mb-6">📚</div>
+              <h2 className="text-4xl font-bold mb-4 baloo">Coloring Books</h2>
+              <p className="text-xl mb-6 opacity-90">
+                Color beautiful pages from different themed books!
+              </p>
+              <ul className="text-left space-y-2 text-lg">
+                <li>✓ 4 themed coloring books</li>
+                <li>✓ 11 pages per book</li>
+                <li>✓ 18 vibrant colors</li>
+                <li>✓ Page navigation</li>
+                <li>✓ Save to gallery</li>
+              </ul>
+            </div>
+          </motion.div>
+
+          {/* Art Gallery Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
             whileHover={{ scale: 1.05, y: -10 }}
             onClick={() => setCurrentView('gallery')}
             className="bg-gradient-to-br from-pink-400 to-rose-600 rounded-3xl p-8 cursor-pointer shadow-2xl hover:shadow-3xl transition-all"
