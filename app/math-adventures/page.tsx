@@ -9,6 +9,9 @@ import NumberGames from '@/components/math/NumberGames';
 import AdditionFun from '@/components/math/AdditionFun';
 import SubtractionZone from '@/components/math/SubtractionZone';
 import MultiplicationTables from '@/components/math/MultiplicationTables';
+import DivisionMaster from '@/components/math/DivisionMaster';
+import CountingKingdom from '@/components/math/CountingKingdom';
+import SkipCounting from '@/components/math/SkipCounting';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -298,6 +301,12 @@ export default function MathAdventuresPage() {
         return <SubtractionZone />;
       case 'multiplication':
         return <MultiplicationTables />;
+      case 'division':
+        return <DivisionMaster />;
+      case 'counting':
+        return <CountingKingdom />;
+      case 'skip-counting':
+        return <SkipCounting />;
       default:
         // Coming soon message for new modules
         const currentActivity = activities.find(a => a.id === activeActivity);
