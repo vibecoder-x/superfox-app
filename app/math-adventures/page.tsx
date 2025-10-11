@@ -12,6 +12,9 @@ import MultiplicationTables from '@/components/math/MultiplicationTables';
 import DivisionMaster from '@/components/math/DivisionMaster';
 import CountingKingdom from '@/components/math/CountingKingdom';
 import SkipCounting from '@/components/math/SkipCounting';
+import ShapesGeometry from '@/components/math/ShapesGeometry';
+import PatternsSequences from '@/components/math/PatternsSequences';
+import FractionsFun from '@/components/math/FractionsFun';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -307,6 +310,12 @@ export default function MathAdventuresPage() {
         return <CountingKingdom />;
       case 'skip-counting':
         return <SkipCounting />;
+      case 'shapes':
+        return <ShapesGeometry />;
+      case 'patterns':
+        return <PatternsSequences />;
+      case 'fractions':
+        return <FractionsFun />;
       default:
         // Coming soon message for new modules
         const currentActivity = activities.find(a => a.id === activeActivity);
