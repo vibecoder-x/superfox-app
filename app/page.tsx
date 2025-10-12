@@ -8,6 +8,7 @@ import MiniGames from '@/components/MiniGames';
 import AboutSuperfox from '@/components/AboutSuperfox';
 import ParentZone from '@/components/ParentZone';
 import Footer from '@/components/Footer';
+import SuperfoxChat from '@/components/SuperfoxChat';
 
 export default function Home() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -89,6 +90,7 @@ export default function Home() {
       <AboutSuperfox />
       <ParentZone />
       <Footer />
+      <SuperfoxChat />
     </main>
   );
 }

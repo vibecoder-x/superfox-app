@@ -118,7 +118,9 @@ export default function Footer() {
                 <FaFacebook className="text-xl" />
               </motion.a>
               <motion.a
-                href="#"
+                href="https://x.com/superfoxnet"
+                target="_blank"
+                rel="noopener noreferrer"
                 whileHover={{ scale: 1.2, rotate: 5 }}
                 className="bg-white/20 hover:bg-white/30 p-3 rounded-full transition-colors"
               >
@@ -161,31 +163,6 @@ export default function Footer() {
           </div>
         </div>
       </div>
-
-      {/* Superfox Character at Bottom */}
-      <motion.div
-        animate={{
-          y: [0, -10, 0],
-        }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="fixed bottom-8 right-8 z-50 cursor-pointer"
-      >
-        <div className="relative w-20 h-20 bg-white rounded-full shadow-2xl overflow-hidden border-4 border-superfox-orange">
-          <Image
-            src="/images/icon.png"
-            alt="Superfox Helper"
-            fill
-            className="object-cover"
-          />
-        </div>
-        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-          ?
-        </div>
-      </motion.div>
     </footer>
   );
 }

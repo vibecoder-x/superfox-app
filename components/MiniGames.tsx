@@ -143,8 +143,8 @@ export default function MiniGames() {
                 className="relative w-full aspect-square"
               >
                 <Image
-                  src="/images/Superfox helping kids make paper airplanes.png"
-                  alt="Superfox Playing Games"
+                  src="/images/Superfox giving a high-five to a child.png"
+                  alt="Superfox Celebrating Success"
                   fill
                   className="object-cover rounded-3xl shadow-2xl"
                 />
