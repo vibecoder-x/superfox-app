@@ -31,7 +31,7 @@ const learningModules = [
     color: 'from-purple-400 to-purple-600',
     image: '/images/Superfox discovering planets with a telescope.png',
     stars: 5,
-    link: '#',
+    link: '/science-lab',
   },
   {
     title: 'Creative Studio',
