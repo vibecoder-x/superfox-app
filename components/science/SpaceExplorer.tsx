@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaRocket, FaTimes, FaStar } from 'react-icons/fa';
+import Image from 'next/image';
 
 type Planet = {
   id: string;
   name: string;
-  emoji: string;
+  imagePath: string;
   color: string;
   size: number;
+  diameter: number;
   distanceFromSun: number;
   funFacts: string[];
   dayLength: string;
@@ -22,9 +24,10 @@ const planets: Planet[] = [
   {
     id: 'mercury',
     name: 'Mercury',
-    emoji: '☿️',
+    imagePath: '/planets/Mercury.png',
     color: 'from-gray-400 to-gray-600',
-    size: 40,
+    size: 38,  // Smallest planet (4,879 km diameter)
+    diameter: 4879,
     distanceFromSun: 58,
     funFacts: [
       'Closest planet to the Sun!',
@@ -40,9 +43,10 @@ const planets: Planet[] = [
   {
     id: 'venus',
     name: 'Venus',
-    emoji: '♀️',
+    imagePath: '/planets/venus.png',
     color: 'from-yellow-300 to-orange-500',
-    size: 95,
+    size: 95,  // Similar to Earth (12,104 km diameter)
+    diameter: 12104,
     distanceFromSun: 108,
     funFacts: [
       'Hottest planet in our solar system!',
@@ -58,9 +62,10 @@ const planets: Planet[] = [
   {
     id: 'earth',
     name: 'Earth',
-    emoji: '🌍',
+    imagePath: '/planets/earth.png',
     color: 'from-blue-400 to-green-500',
-    size: 100,
+    size: 100,  // Base size (12,756 km diameter)
+    diameter: 12756,
     distanceFromSun: 150,
     funFacts: [
       'Our home planet!',
@@ -76,9 +81,10 @@ const planets: Planet[] = [
   {
     id: 'mars',
     name: 'Mars',
-    emoji: '♂️',
+    imagePath: '/planets/MArs.png',
     color: 'from-red-400 to-red-700',
-    size: 53,
+    size: 53,  // Half Earth's size (6,792 km diameter)
+    diameter: 6792,
     distanceFromSun: 228,
     funFacts: [
       'Called the Red Planet!',
@@ -94,9 +100,10 @@ const planets: Planet[] = [
   {
     id: 'jupiter',
     name: 'Jupiter',
-    emoji: '♃',
+    imagePath: '/planets/Jupiter.png',
     color: 'from-orange-300 to-red-500',
-    size: 280,
+    size: 320,  // LARGEST! (142,984 km diameter - 11x Earth)
+    diameter: 142984,
     distanceFromSun: 778,
     funFacts: [
       'Largest planet in our solar system!',
@@ -112,9 +119,10 @@ const planets: Planet[] = [
   {
     id: 'saturn',
     name: 'Saturn',
-    emoji: '♄',
+    imagePath: '/planets/Saturn.png',
     color: 'from-yellow-200 to-yellow-500',
-    size: 235,
+    size: 280,  // Second largest (120,536 km diameter - 9.4x Earth)
+    diameter: 120536,
     distanceFromSun: 1427,
     funFacts: [
       'Famous for beautiful rings!',
@@ -130,9 +138,10 @@ const planets: Planet[] = [
   {
     id: 'uranus',
     name: 'Uranus',
-    emoji: '♅',
+    imagePath: '/planets/Uranus.png',
     color: 'from-cyan-300 to-blue-500',
-    size: 127,
+    size: 160,  // 4x Earth (51,118 km diameter)
+    diameter: 51118,
     distanceFromSun: 2871,
     funFacts: [
       'Rotates on its side!',
@@ -148,9 +157,10 @@ const planets: Planet[] = [
   {
     id: 'neptune',
     name: 'Neptune',
-    emoji: '♆',
+    imagePath: '/planets/Neptune.png',
     color: 'from-blue-500 to-indigo-700',
-    size: 123,
+    size: 155,  // Similar to Uranus (49,528 km diameter)
+    diameter: 49528,
     distanceFromSun: 4495,
     funFacts: [
       'Farthest planet from the Sun!',
@@ -322,7 +332,7 @@ export default function SpaceExplorer() {
           <motion.div
             className="absolute left-4 top-1/2 -translate-y-1/2"
             animate={{
-              scale: [1, 1.1, 1],
+              scale: [1, 1.05, 1],
               rotate: [0, 360]
             }}
             transition={{
@@ -330,18 +340,26 @@ export default function SpaceExplorer() {
               repeat: Infinity
             }}
           >
-            <div className="text-9xl filter drop-shadow-2xl">☀️</div>
+            <div className="relative w-32 h-32">
+              <Image
+                src="/planets/Sun.png"
+                alt="Sun"
+                fill
+                className="object-contain filter drop-shadow-2xl"
+              />
+              <div className="absolute inset-0 bg-yellow-400 rounded-full blur-3xl opacity-30 animate-pulse"></div>
+            </div>
           </motion.div>
 
           {/* Planets */}
-          <div className="relative z-10 flex items-center justify-around h-[500px] pl-32">
+          <div className="relative z-10 flex items-center justify-around h-[500px] pl-40">
             {planets.map((planet, index) => (
               <motion.div
                 key={planet.id}
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.2 }}
+                whileHover={{ scale: 1.15 }}
                 onClick={() => setSelectedPlanet(planet)}
                 className="cursor-pointer relative group"
                 style={{
@@ -350,19 +368,35 @@ export default function SpaceExplorer() {
                 }}
               >
                 <motion.div
-                  className={`w-full h-full rounded-full bg-gradient-to-br ${planet.color} shadow-2xl flex items-center justify-center text-4xl`}
+                  className="w-full h-full relative"
                   animate={{
-                    y: [0, -10, 0]
+                    y: [0, -10, 0],
+                    rotate: [0, 360]
                   }}
                   transition={{
-                    duration: 2 + index * 0.5,
-                    repeat: Infinity
+                    y: {
+                      duration: 2 + index * 0.5,
+                      repeat: Infinity
+                    },
+                    rotate: {
+                      duration: 30 + index * 5,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }
                   }}
                 >
-                  {planet.emoji}
+                  <Image
+                    src={planet.imagePath}
+                    alt={planet.name}
+                    fill
+                    className="object-contain filter drop-shadow-xl"
+                  />
                 </motion.div>
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-white font-bold text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-white font-bold text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 px-2 py-1 rounded">
                   {planet.name}
+                </div>
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-purple-600 px-2 py-1 rounded">
+                  {planet.diameter.toLocaleString()} km
                 </div>
               </motion.div>
             ))}
