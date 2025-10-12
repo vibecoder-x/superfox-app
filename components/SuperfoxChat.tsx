@@ -46,43 +46,27 @@ export default function SuperfoxChat() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        'https://api.deepseek.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer sk-553a0b887162465f8263efe4f68ea2af'
-          },
-          body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are Superfox, a friendly and educational AI companion for children aged 5-10. You help kids learn about math, science, reading, and creativity in a fun and engaging way. Keep responses simple, encouraging, and age-appropriate. Use emojis occasionally. Always be positive and supportive.'
-              },
-              {
-                role: 'user',
-                content: inputMessage
-              }
-            ],
-            temperature: 0.7,
-            max_tokens: 500
-          })
-        }
-      );
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: inputMessage
+        })
+      });
 
       const data = await response.json();
 
-      if (data.choices && data.choices[0]?.message?.content) {
+      if (data.content) {
         const assistantMessage: Message = {
           role: 'assistant',
-          content: data.choices[0].message.content,
+          content: data.content,
           timestamp: new Date()
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } else {
-        throw new Error('Invalid response from API');
+        throw new Error(data.error || 'Invalid response from API');
       }
     } catch (error) {
       console.error('Error sending message:', error);
