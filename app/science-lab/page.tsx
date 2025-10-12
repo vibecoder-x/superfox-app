@@ -99,7 +99,7 @@ export default function ScienceLab() {
               {scienceModules.find(m => m.id === currentModule)?.title}
             </h2>
             <p className="text-2xl text-gray-600 mb-8">
-              Coming Soon! We're working hard to bring you amazing science content!
+              Coming Soon! We&apos;re working hard to bring you amazing science content!
             </p>
             <div className="text-8xl">🔬✨</div>
           </motion.div>

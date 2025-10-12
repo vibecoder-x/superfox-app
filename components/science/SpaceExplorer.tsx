@@ -9,6 +9,7 @@ type Planet = {
   id: string;
   name: string;
   imagePath: string;
+  emoji: string;
   color: string;
   size: number;
   diameter: number;
@@ -25,6 +26,7 @@ const planets: Planet[] = [
     id: 'mercury',
     name: 'Mercury',
     imagePath: '/planets/Mercury.png',
+    emoji: '☿️',
     color: 'from-gray-400 to-gray-600',
     size: 38,  // Smallest planet (4,879 km diameter)
     diameter: 4879,
@@ -44,6 +46,7 @@ const planets: Planet[] = [
     id: 'venus',
     name: 'Venus',
     imagePath: '/planets/venus.png',
+    emoji: '♀️',
     color: 'from-yellow-300 to-orange-500',
     size: 95,  // Similar to Earth (12,104 km diameter)
     diameter: 12104,
@@ -63,6 +66,7 @@ const planets: Planet[] = [
     id: 'earth',
     name: 'Earth',
     imagePath: '/planets/earth.png',
+    emoji: '🌍',
     color: 'from-blue-400 to-green-500',
     size: 100,  // Base size (12,756 km diameter)
     diameter: 12756,
@@ -82,6 +86,7 @@ const planets: Planet[] = [
     id: 'mars',
     name: 'Mars',
     imagePath: '/planets/MArs.png',
+    emoji: '🔴',
     color: 'from-red-400 to-red-700',
     size: 53,  // Half Earth's size (6,792 km diameter)
     diameter: 6792,
@@ -101,6 +106,7 @@ const planets: Planet[] = [
     id: 'jupiter',
     name: 'Jupiter',
     imagePath: '/planets/Jupiter.png',
+    emoji: '🪐',
     color: 'from-orange-300 to-red-500',
     size: 320,  // LARGEST! (142,984 km diameter - 11x Earth)
     diameter: 142984,
@@ -120,6 +126,7 @@ const planets: Planet[] = [
     id: 'saturn',
     name: 'Saturn',
     imagePath: '/planets/Saturn.png',
+    emoji: '🪐',
     color: 'from-yellow-200 to-yellow-500',
     size: 280,  // Second largest (120,536 km diameter - 9.4x Earth)
     diameter: 120536,
@@ -139,6 +146,7 @@ const planets: Planet[] = [
     id: 'uranus',
     name: 'Uranus',
     imagePath: '/planets/Uranus.png',
+    emoji: '🔵',
     color: 'from-cyan-300 to-blue-500',
     size: 160,  // 4x Earth (51,118 km diameter)
     diameter: 51118,
@@ -158,6 +166,7 @@ const planets: Planet[] = [
     id: 'neptune',
     name: 'Neptune',
     imagePath: '/planets/Neptune.png',
+    emoji: '🔵',
     color: 'from-blue-500 to-indigo-700',
     size: 155,  // Similar to Uranus (49,528 km diameter)
     diameter: 49528,
