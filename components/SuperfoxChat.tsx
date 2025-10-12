@@ -57,6 +57,7 @@ export default function SuperfoxChat() {
       });
 
       const data = await response.json();
+      console.log('API Response:', data);
 
       if (data.content) {
         const assistantMessage: Message = {
@@ -66,13 +67,15 @@ export default function SuperfoxChat() {
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } else {
-        throw new Error(data.error || 'Invalid response from API');
+        const errorMsg = data.error || data.details || JSON.stringify(data);
+        console.error('API Error:', errorMsg);
+        throw new Error(errorMsg);
       }
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
         role: 'assistant',
-        content: "Oops! I'm having trouble thinking right now. Can you try asking me again? 🤔",
+        content: `Oops! I'm having trouble thinking right now. Error: ${error instanceof Error ? error.message : String(error)} 🤔`,
         timestamp: new Date()
       };
       setMessages((prev) => [...prev, errorMessage]);
