@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer sk-553a0b887162465f8263efe4f68ea2af'
+        'Authorization': 'Bearer sk-86e1066209a0484b9699dffe59c5e009'
       },
       body: JSON.stringify({
         model: 'deepseek-chat',
