@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const { message } = await request.json();
+    console.log('Received message:', message);
 
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
@@ -27,22 +28,25 @@ export async function POST(request: NextRequest) {
       })
     });
 
+    console.log('DeepSeek API status:', response.status);
     const data = await response.json();
+    console.log('DeepSeek API response:', JSON.stringify(data, null, 2));
 
     if (data.choices && data.choices[0]?.message?.content) {
       return NextResponse.json({
         content: data.choices[0].message.content
       });
     } else {
+      console.error('Invalid response structure:', data);
       return NextResponse.json(
-        { error: 'Invalid response from AI' },
+        { error: 'Invalid response from AI', details: data },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error('Chat API error:', error);
     return NextResponse.json(
-      { error: 'Failed to get response from AI' },
+      { error: 'Failed to get response from AI', details: String(error) },
       { status: 500 }
     );
   }
