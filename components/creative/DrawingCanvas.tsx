@@ -49,13 +49,17 @@ export default function DrawingCanvas() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size responsive
+    // Set canvas size responsive - maximize screen usage
     const updateCanvasSize = () => {
       const container = canvas.parentElement;
       if (!container) return;
 
-      const width = Math.min(800, container.clientWidth - 32);
-      const height = Math.min(600, width * 0.75);
+      // Use most of the screen width (container width - padding)
+      const maxWidth = window.innerWidth - 100; // Leave space for margins
+      const maxHeight = window.innerHeight - 400; // Leave space for toolbar and header
+
+      const width = Math.min(maxWidth, container.clientWidth - 32);
+      const height = Math.max(600, maxHeight); // Minimum 600px height
 
       canvas.width = width;
       canvas.height = height;
