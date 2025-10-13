@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { FaBook, FaPlay, FaHeart } from 'react-icons/fa';
 import { useState } from 'react';
 import { useAudio } from '@/hooks/useAudio';
+import MagicalForestStory from '@/components/stories/MagicalForestStory';
 
 const storyCategories = [
   {
@@ -37,6 +38,7 @@ const featuredStories = [
     duration: '10 min',
     category: 'Adventure',
     audioPath: null,
+    hasInteractiveStory: false,
   },
   {
     title: 'The Magical Forest',
@@ -44,7 +46,8 @@ const featuredStories = [
     image: '/images/Superfox exploring a magical forest.png',
     duration: '8 min',
     category: 'Adventure',
-    audioPath: '/audio/intro/The Magical Forest.mp3',
+    audioPath: '/stories/magical-forest/narration.mp3',
+    hasInteractiveStory: true,
   },
   {
     title: 'Superfox Learns to Share',
@@ -52,6 +55,7 @@ const featuredStories = [
     image: '/images/Superfox giving a high-five to a child.png',
     duration: '7 min',
     category: 'Friendship',
+    hasInteractiveStory: false,
   },
   {
     title: 'The Great Garden Adventure',
@@ -59,12 +63,14 @@ const featuredStories = [
     image: '/images/Superfox planting trees in a green garden.png',
     duration: '9 min',
     category: 'Nature',
+    hasInteractiveStory: false,
   },
 ];
 
 export default function StoryLibrary() {
   const { playAudio, stopAudio } = useAudio();
   const [playingStory, setPlayingStory] = useState<string | null>(null);
+  const [showMagicalForest, setShowMagicalForest] = useState(false);
 
   const handlePlayStory = (story: typeof featuredStories[0]) => {
     if (!story.audioPath) return;
@@ -80,9 +86,22 @@ export default function StoryLibrary() {
     }
   };
 
+  const handleStoryClick = (story: typeof featuredStories[0]) => {
+    // If story has interactive version, open it
+    if (story.hasInteractiveStory && story.title === 'The Magical Forest') {
+      setShowMagicalForest(true);
+    }
+  };
+
   return (
-    <section className="py-20 bg-gradient-to-b from-blue-50 to-purple-50">
-      <div className="container mx-auto px-4">
+    <>
+      {/* Magical Forest Interactive Story */}
+      {showMagicalForest && (
+        <MagicalForestStory onClose={() => setShowMagicalForest(false)} />
+      )}
+
+      <section className="py-20 bg-gradient-to-b from-blue-50 to-purple-50">
+        <div className="container mx-auto px-4">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: -30 }}
@@ -124,6 +143,7 @@ export default function StoryLibrary() {
               transition={{ delay: index * 0.1, duration: 0.5 }}
               viewport={{ once: true }}
               whileHover={{ y: -10 }}
+              onClick={() => handleStoryClick(story)}
               className="bg-white rounded-3xl shadow-xl overflow-hidden group cursor-pointer"
             >
               {/* Story Image */}
@@ -215,5 +235,6 @@ export default function StoryLibrary() {
         </motion.div>
       </div>
     </section>
+    </>
   );
 }
