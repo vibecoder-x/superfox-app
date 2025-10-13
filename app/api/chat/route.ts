@@ -2,8 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json();
-    console.log('Received message:', message);
+    const { messages } = await request.json();
+    console.log('Received messages:', messages);
+
+    // Build the messages array with system prompt and conversation history
+    const apiMessages = [
+      {
+        role: 'system',
+        content: 'You are Superfox, an educational AI for kids aged 5-10. Keep responses SHORT (2-3 sentences max). Answer ONLY what the user asks - do NOT introduce yourself or explain who you are every time. Be friendly, encouraging, and age-appropriate. Use emojis occasionally. IMPORTANT: Remember the conversation context and stay on topic. If discussing a specific subject like division, continue helping with that topic.'
+      },
+      ...messages
+    ];
 
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
@@ -13,16 +22,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are Superfox, an educational AI for kids aged 5-10. Keep responses SHORT (2-3 sentences max). Answer ONLY what the user asks - do NOT introduce yourself or explain who you are every time. Be friendly, encouraging, and age-appropriate. Use emojis occasionally.'
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
+        messages: apiMessages,
         temperature: 0.7,
         max_tokens: 150
       })

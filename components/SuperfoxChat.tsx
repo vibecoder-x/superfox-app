@@ -46,13 +46,27 @@ export default function SuperfoxChat() {
     setIsLoading(true);
 
     try {
+      // Prepare conversation history (exclude the initial greeting and timestamps)
+      const conversationHistory = messages
+        .slice(1) // Skip initial greeting
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
+      // Add the new user message to history
+      conversationHistory.push({
+        role: 'user',
+        content: inputMessage
+      });
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: inputMessage
+          messages: conversationHistory
         })
       });
 
