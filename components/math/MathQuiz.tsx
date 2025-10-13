@@ -108,9 +108,11 @@ export default function MathQuiz() {
 
     setTimeout(() => {
       if (lives - 1 > 0 || correct) {
-        setShowResult(false);
+        // Reset all states first
         setSelectedAnswer(null);
         setIsCorrect(null);
+        setShowResult(false);
+        // Then update question
         setQuestionCount(questionCount + 1);
         setCurrentQuestion(generateQuestion(difficulty));
       }
@@ -226,7 +228,7 @@ export default function MathQuiz() {
           <div className="grid grid-cols-2 gap-4 mb-6">
             {currentQuestion.options.map((option, index) => (
               <motion.button
-                key={index}
+                key={`${questionCount}-${index}-${option}`}
                 whileHover={!showResult ? { scale: 1.05 } : {}}
                 whileTap={!showResult ? { scale: 0.95 } : {}}
                 onClick={() => handleAnswer(option)}
