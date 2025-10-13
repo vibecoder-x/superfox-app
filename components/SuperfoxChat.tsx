@@ -56,6 +56,12 @@ export default function SuperfoxChat() {
         })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API Error Response:', errorData);
+        throw new Error(`API Error: ${JSON.stringify(errorData)}`);
+      }
+
       const data = await response.json();
       console.log('API Response:', data);
 
@@ -67,7 +73,7 @@ export default function SuperfoxChat() {
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } else {
-        const errorMsg = data.error || data.details || JSON.stringify(data);
+        const errorMsg = `No content in response: ${JSON.stringify(data)}`;
         console.error('API Error:', errorMsg);
         throw new Error(errorMsg);
       }
