@@ -55,16 +55,29 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Initialize audio only once
   useEffect(() => {
-    // Initialize audio
     audioRef.current = new Audio('/stories/magical-forest/narration.mp3');
 
     const handleAudioEnded = () => {
       setIsPlaying(false);
     };
 
+    audioRef.current.addEventListener('ended', handleAudioEnded);
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.removeEventListener('ended', handleAudioEnded);
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Handle audio time updates for auto page advancement
+  useEffect(() => {
     const handleTimeUpdate = () => {
-      if (!audioRef.current || !isPlaying) return;
+      if (!audioRef.current) return;
 
       const currentTime = audioRef.current.currentTime;
 
@@ -77,15 +90,13 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
       }
     };
 
-    audioRef.current.addEventListener('ended', handleAudioEnded);
-    audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
+    if (audioRef.current && isPlaying) {
+      audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
+    }
 
     return () => {
       if (audioRef.current) {
-        audioRef.current.removeEventListener('ended', handleAudioEnded);
         audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-        audioRef.current.pause();
-        audioRef.current = null;
       }
     };
   }, [isPlaying]);
