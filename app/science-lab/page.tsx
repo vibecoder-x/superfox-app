@@ -63,9 +63,10 @@ export default function ScienceLab() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setCurrentModule('hub')}
-            className="mb-6 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl"
+            className="mb-6 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl relative"
           >
             <FaArrowLeft /> Back to Science Lab
+            <span className="absolute -top-2 -right-2 text-2xl transform -rotate-12">🦊</span>
           </motion.button>
           <SpaceExplorer />
         </div>
@@ -82,9 +83,10 @@ export default function ScienceLab() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setCurrentModule('hub')}
-            className="mb-6 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl"
+            className="mb-6 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl relative"
           >
             <FaArrowLeft /> Back to Science Lab
+            <span className="absolute -top-2 -right-2 text-2xl transform -rotate-12">🦊</span>
           </motion.button>
 
           <motion.div
@@ -117,9 +119,10 @@ export default function ScienceLab() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="mb-8 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl"
+            className="mb-8 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl relative"
           >
             <FaArrowLeft /> Back to Home
+            <span className="absolute -top-2 -right-2 text-2xl transform -rotate-12">🦊</span>
           </motion.button>
         </Link>
 

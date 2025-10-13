@@ -21,9 +21,10 @@ export default function CreativeStudio() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setCurrentView('hub')}
-            className="mb-6 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl"
+            className="mb-6 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl relative"
           >
             <FaArrowLeft /> Back to Hub
+            <span className="absolute -top-2 -right-2 text-2xl transform -rotate-12">🦊</span>
           </motion.button>
           <DrawingCanvas />
         </div>
@@ -39,9 +40,10 @@ export default function CreativeStudio() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setCurrentView('hub')}
-            className="mb-6 px-6 py-3 bg-white text-pink-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl"
+            className="mb-6 px-6 py-3 bg-white text-pink-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl relative"
           >
             <FaArrowLeft /> Back to Hub
+            <span className="absolute -top-2 -right-2 text-2xl transform -rotate-12">🦊</span>
           </motion.button>
           <ArtGallery />
         </div>
@@ -57,9 +59,10 @@ export default function CreativeStudio() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setCurrentView('hub')}
-            className="mb-6 px-6 py-3 bg-white text-orange-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl"
+            className="mb-6 px-6 py-3 bg-white text-orange-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl relative"
           >
             <FaArrowLeft /> Back to Hub
+            <span className="absolute -top-2 -right-2 text-2xl transform -rotate-12">🦊</span>
           </motion.button>
           <ColoringBook />
         </div>
@@ -75,9 +78,10 @@ export default function CreativeStudio() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="mb-8 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl"
+            className="mb-8 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl relative"
           >
             <FaArrowLeft /> Back to Home
+            <span className="absolute -top-2 -right-2 text-2xl transform -rotate-12">🦊</span>
           </motion.button>
         </Link>
 

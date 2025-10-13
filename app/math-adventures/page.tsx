@@ -405,9 +405,10 @@ export default function MathAdventuresPage() {
         <div className="mb-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-800 font-bold py-3 px-6 rounded-full shadow-lg transition-all"
+            className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-800 font-bold py-3 px-6 rounded-full shadow-lg transition-all relative"
           >
             <FaHome /> Back to Home
+            <span className="absolute -top-2 -right-2 text-2xl transform -rotate-12">🦊</span>
           </Link>
         </div>
 
