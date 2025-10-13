@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaArrowLeft, FaArrowRight, FaPalette, FaSave, FaUndo, FaRedo, FaHome } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight, FaPalette, FaSave, FaUndo, FaRedo, FaHome, FaFillDrip } from 'react-icons/fa';
 import Image from 'next/image';
 
 type ColoringBook = {
@@ -82,6 +82,7 @@ export default function ColoringBook() {
   const [svgLoaded, setSvgLoaded] = useState(false);
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [currentTool, setCurrentTool] = useState<'brush' | 'fill'>('brush');
 
   useEffect(() => {
     if (selectedBook && canvasRef.current) {
@@ -107,15 +108,18 @@ export default function ColoringBook() {
       img.crossOrigin = 'anonymous';
 
       img.onload = () => {
-        // Set canvas size to match image
-        canvas.width = 800;
-        canvas.height = 600;
+        // Set canvas size to window size for full screen
+        const maxWidth = window.innerWidth - 400; // Leave space for sidebar
+        const maxHeight = window.innerHeight - 250; // Leave space for header and navigation
+
+        canvas.width = maxWidth;
+        canvas.height = maxHeight;
 
         // Fill white background
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw the SVG image centered and scaled
+        // Draw the SVG image centered and scaled to fill canvas
         const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
         const x = (canvas.width - img.width * scale) / 2;
         const y = (canvas.height - img.height * scale) / 2;
@@ -137,6 +141,71 @@ export default function ColoringBook() {
       console.error('Error loading SVG:', error);
       setSvgLoaded(true);
     }
+  };
+
+  // Flood fill algorithm for paint bucket
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+
+  const getPixelColor = (imageData: ImageData, x: number, y: number) => {
+    const index = (y * imageData.width + x) * 4;
+    return {
+      r: imageData.data[index],
+      g: imageData.data[index + 1],
+      b: imageData.data[index + 2],
+      a: imageData.data[index + 3]
+    };
+  };
+
+  const colorsMatch = (a: {r: number, g: number, b: number, a?: number}, b: {r: number, g: number, b: number, a?: number}) => {
+    return a.r === b.r && a.g === b.g && a.b === b.b;
+  };
+
+  const floodFill = (startX: number, startY: number, fillColor: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const targetColor = getPixelColor(imageData, startX, startY);
+    const fillRGB = hexToRgb(fillColor);
+
+    if (!fillRGB || colorsMatch(targetColor, fillRGB)) return;
+
+    const pixelsToCheck: number[] = [startX, startY];
+    const width = canvas.width;
+    const height = canvas.height;
+    const checkedPixels = new Set<number>();
+
+    while (pixelsToCheck.length > 0) {
+      const y = pixelsToCheck.pop()!;
+      const x = pixelsToCheck.pop()!;
+      const pixelPos = (y * width + x) * 4;
+
+      if (x < 0 || x >= width || y < 0 || y >= height) continue;
+      if (checkedPixels.has(pixelPos)) continue;
+      checkedPixels.add(pixelPos);
+
+      const currentColor = getPixelColor(imageData, x, y);
+      if (!colorsMatch(currentColor, targetColor)) continue;
+
+      imageData.data[pixelPos] = fillRGB.r;
+      imageData.data[pixelPos + 1] = fillRGB.g;
+      imageData.data[pixelPos + 2] = fillRGB.b;
+      imageData.data[pixelPos + 3] = 255;
+
+      pixelsToCheck.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    saveToHistory();
   };
 
   const saveToHistory = () => {
@@ -201,20 +270,32 @@ export default function ColoringBook() {
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    setIsDrawing(true);
     const pos = getMousePos(e);
-
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Scale the position to canvas coordinates
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const canvasX = Math.floor(pos.x * scaleX);
+    const canvasY = Math.floor(pos.y * scaleY);
+
+    if (currentTool === 'fill') {
+      floodFill(canvasX, canvasY, selectedColor);
+      return;
+    }
+
+    setIsDrawing(true);
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
+    ctx.moveTo(canvasX, canvasY);
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
+    if (!isDrawing || currentTool === 'fill') return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -222,12 +303,17 @@ export default function ColoringBook() {
     if (!ctx) return;
 
     const pos = getMousePos(e);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const canvasX = pos.x * scaleX;
+    const canvasY = pos.y * scaleY;
 
     ctx.strokeStyle = selectedColor;
     ctx.lineWidth = brushSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.lineTo(pos.x, pos.y);
+    ctx.lineTo(canvasX, canvasY);
     ctx.stroke();
   };
 
@@ -240,20 +326,32 @@ export default function ColoringBook() {
 
   const startDrawingTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    setIsDrawing(true);
     const pos = getTouchPos(e);
-
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Scale the position to canvas coordinates
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const canvasX = Math.floor(pos.x * scaleX);
+    const canvasY = Math.floor(pos.y * scaleY);
+
+    if (currentTool === 'fill') {
+      floodFill(canvasX, canvasY, selectedColor);
+      return;
+    }
+
+    setIsDrawing(true);
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
+    ctx.moveTo(canvasX, canvasY);
   };
 
   const drawTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
+    if (!isDrawing || currentTool === 'fill') return;
     e.preventDefault();
 
     const canvas = canvasRef.current;
@@ -262,12 +360,17 @@ export default function ColoringBook() {
     if (!ctx) return;
 
     const pos = getTouchPos(e);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const canvasX = pos.x * scaleX;
+    const canvasY = pos.y * scaleY;
 
     ctx.strokeStyle = selectedColor;
     ctx.lineWidth = brushSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.lineTo(pos.x, pos.y);
+    ctx.lineTo(canvasX, canvasY);
     ctx.stroke();
   };
 
@@ -396,6 +499,35 @@ export default function ColoringBook() {
         <div className="lg:col-span-1 bg-white rounded-3xl shadow-2xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <FaPalette className="text-2xl text-orange-600" />
+            <h3 className="text-2xl font-bold text-gray-800">Tools</h3>
+          </div>
+
+          {/* Tool Selection */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCurrentTool('brush')}
+              className={`px-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                currentTool === 'brush' ? 'bg-orange-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              <FaPalette /> Brush
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCurrentTool('fill')}
+              className={`px-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                currentTool === 'fill' ? 'bg-orange-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              <FaFillDrip /> Fill
+            </motion.button>
+          </div>
+
+          <div className="flex items-center gap-2 mb-4">
+            <FaPalette className="text-2xl text-orange-600" />
             <h3 className="text-2xl font-bold text-gray-800">Colors</h3>
           </div>
 
@@ -415,18 +547,20 @@ export default function ColoringBook() {
             ))}
           </div>
 
-          <div className="mb-6">
-            <label className="font-bold text-gray-700 mb-2 block">Brush Size</label>
-            <input
-              type="range"
-              min="5"
-              max="40"
-              value={brushSize}
-              onChange={(e) => setBrushSize(parseInt(e.target.value))}
-              className="w-full"
-            />
-            <div className="text-center text-orange-600 font-bold mt-2">{brushSize}px</div>
-          </div>
+          {currentTool === 'brush' && (
+            <div className="mb-6">
+              <label className="font-bold text-gray-700 mb-2 block">Brush Size</label>
+              <input
+                type="range"
+                min="5"
+                max="40"
+                value={brushSize}
+                onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                className="w-full"
+              />
+              <div className="text-center text-orange-600 font-bold mt-2">{brushSize}px</div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <motion.button
@@ -478,7 +612,7 @@ export default function ColoringBook() {
             className="bg-white rounded-3xl shadow-2xl p-4"
           >
             {!imageLoaded && (
-              <div className="flex items-center justify-center h-[600px]">
+              <div className="flex items-center justify-center min-h-[80vh]">
                 <div className="text-2xl text-gray-500">Loading coloring page...</div>
               </div>
             )}
@@ -491,10 +625,10 @@ export default function ColoringBook() {
               onTouchStart={startDrawingTouch}
               onTouchMove={drawTouch}
               onTouchEnd={stopDrawingTouch}
-              className={`border-4 border-orange-300 rounded-2xl cursor-crosshair touch-none mx-auto ${
+              className={`border-4 border-orange-300 rounded-2xl touch-none w-full ${
                 !imageLoaded ? 'hidden' : ''
-              }`}
-              style={{ maxWidth: '100%', height: 'auto' }}
+              } ${currentTool === 'fill' ? 'cursor-pointer' : 'cursor-crosshair'}`}
+              style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
             />
           </motion.div>
 
