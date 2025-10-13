@@ -10,36 +10,43 @@ const storyPages = [
     page: 1,
     image: '/stories/magical-forest/page1.png',
     text: 'One sunny morning, the Magical Forest shimmered with golden light. Every tree, flower, and river sparkled with a secret waiting to be discovered. And somewhere near the edge of the woods, a clever little fox named Superfox was just waking up.\nSuperfox: What a beautiful morning! I feel like something exciting is waiting for me in the forest today! 🌞',
+    audioStart: 0, // seconds
   },
   {
     page: 2,
     image: '/stories/magical-forest/page2.png',
     text: 'Superfox packed his little backpack, grabbed his map, and started trotting down the winding trail. The birds sang, the wind danced, and the sunlight sparkled through the leaves.\nSuperfox: Wow, everything feels... magical today. Let\'s see what I can find! 🌳✨',
+    audioStart: 20, // seconds
   },
   {
     page: 3,
     image: '/stories/magical-forest/page3.png',
     text: 'As he walked, he noticed a small bunny hopping around in circles, looking worried.\nSuperfox: Hey there, little one! Are you okay?\nLuna the Rabbit: Oh, Superfox! I lost my shiny acorn, and it rolled somewhere deep into the woods!\nSuperfox: Don\'t worry, Luna. I\'ll help you find it! Let\'s go together.',
+    audioStart: 40, // seconds
   },
   {
     page: 4,
     image: '/stories/magical-forest/page4.png',
     text: 'They searched high and low — under bushes, behind flowers, even near the glowing mushrooms. Finally, something shimmered beneath a tree root.\nSuperfox: There it is! I found your acorn! 🌰✨\nLuna the Rabbit: Yay! Thank you, Superfox! You\'re the best!',
+    audioStart: 65, // seconds
   },
   {
     page: 5,
     image: '/stories/magical-forest/page5.png',
     text: 'Just then, a gentle voice echoed through the forest.\nOro the Owl: Bravery and kindness always bring light to the forest. Superfox, your good heart has awakened the magic once again.\nSuperfox: Wow... really? That\'s amazing!',
+    audioStart: 85, // seconds
   },
   {
     page: 6,
     image: '/stories/magical-forest/page6.png',
     text: 'A warm glow surrounded Superfox, and a golden acorn appeared in his paw. It shimmered softly — a gift from the forest itself.\nOro the Owl: Keep it close, Superfox. Whenever you feel lost, it will light your way.\nSuperfox: Thank you, Oro! And thank you, Luna! What an adventure this has been!',
+    audioStart: 105, // seconds
   },
   {
     page: 7,
     image: '/stories/magical-forest/page7.png',
     text: 'And as the sun began to set, Superfox walked home with a glowing heart and a new treasure — a reminder that kindness always brings magic to the world. ✨\nSuperfox: Can\'t wait for my next adventure! See you soon, friends! 🦊🌟',
+    audioStart: 130, // seconds
   },
 ];
 
@@ -52,17 +59,36 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
     // Initialize audio
     audioRef.current = new Audio('/stories/magical-forest/narration.mp3');
 
-    audioRef.current.addEventListener('ended', () => {
+    const handleAudioEnded = () => {
       setIsPlaying(false);
-    });
+    };
+
+    const handleTimeUpdate = () => {
+      if (!audioRef.current || !isPlaying) return;
+
+      const currentTime = audioRef.current.currentTime;
+
+      // Find which page should be displayed based on audio time
+      for (let i = storyPages.length - 1; i >= 0; i--) {
+        if (currentTime >= storyPages[i].audioStart) {
+          setCurrentPage(i);
+          break;
+        }
+      }
+    };
+
+    audioRef.current.addEventListener('ended', handleAudioEnded);
+    audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
 
     return () => {
       if (audioRef.current) {
+        audioRef.current.removeEventListener('ended', handleAudioEnded);
+        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
         audioRef.current.pause();
         audioRef.current = null;
       }
     };
-  }, []);
+  }, [isPlaying]);
 
   const togglePlayPause = () => {
     if (!audioRef.current) return;
@@ -77,13 +103,31 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
 
   const nextPage = () => {
     if (currentPage < storyPages.length - 1) {
-      setCurrentPage(currentPage + 1);
+      const newPage = currentPage + 1;
+      setCurrentPage(newPage);
+      // Sync audio to the new page's start time
+      if (audioRef.current) {
+        audioRef.current.currentTime = storyPages[newPage].audioStart;
+      }
     }
   };
 
   const prevPage = () => {
     if (currentPage > 0) {
-      setCurrentPage(currentPage - 1);
+      const newPage = currentPage - 1;
+      setCurrentPage(newPage);
+      // Sync audio to the new page's start time
+      if (audioRef.current) {
+        audioRef.current.currentTime = storyPages[newPage].audioStart;
+      }
+    }
+  };
+
+  const jumpToPage = (pageIndex: number) => {
+    setCurrentPage(pageIndex);
+    // Sync audio to the selected page's start time
+    if (audioRef.current) {
+      audioRef.current.currentTime = storyPages[pageIndex].audioStart;
     }
   };
 
@@ -154,36 +198,64 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
           </div>
         </div>
 
-        {/* Navigation Footer */}
-        <div className="bg-white border-t border-gray-200 p-4 flex items-center justify-between">
-          <button
-            onClick={prevPage}
-            disabled={currentPage === 0}
-            className="flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
+        {/* Navigation Footer - Show only when paused */}
+        {!isPlaying && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="bg-white border-t border-gray-200 p-4 flex items-center justify-between"
           >
-            <FaArrowLeft /> Previous
-          </button>
+            <button
+              onClick={prevPage}
+              disabled={currentPage === 0}
+              className="flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
+            >
+              <FaArrowLeft /> Previous
+            </button>
 
-          <div className="flex gap-2">
-            {storyPages.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentPage(index)}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  index === currentPage ? 'bg-green-500 w-8' : 'bg-gray-300 hover:bg-gray-400'
-                }`}
-              />
-            ))}
-          </div>
+            <div className="flex gap-2">
+              {storyPages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => jumpToPage(index)}
+                  className={`w-3 h-3 rounded-full transition-all ${
+                    index === currentPage ? 'bg-green-500 w-8' : 'bg-gray-300 hover:bg-gray-400'
+                  }`}
+                />
+              ))}
+            </div>
 
-          <button
-            onClick={nextPage}
-            disabled={currentPage === storyPages.length - 1}
-            className="flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
+            <button
+              onClick={nextPage}
+              disabled={currentPage === storyPages.length - 1}
+              className="flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
+            >
+              Next <FaArrowRight />
+            </button>
+          </motion.div>
+        )}
+
+        {/* Page indicator when playing */}
+        {isPlaying && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="bg-white border-t border-gray-200 p-4 flex items-center justify-center"
           >
-            Next <FaArrowRight />
-          </button>
-        </div>
+            <div className="flex gap-2">
+              {storyPages.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-3 h-3 rounded-full transition-all ${
+                    index === currentPage ? 'bg-green-500 w-8' : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
       </motion.div>
     </motion.div>
   );
