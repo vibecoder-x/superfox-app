@@ -108,12 +108,17 @@ export default function ColoringBook() {
       img.crossOrigin = 'anonymous';
 
       img.onload = () => {
-        // Set canvas size to window size for full screen
-        const maxWidth = window.innerWidth - 400; // Leave space for sidebar
-        const maxHeight = window.innerHeight - 250; // Leave space for header and navigation
+        // Set canvas size - adaptive to device width, square shape
+        const availableWidth = window.innerWidth - 450; // Leave space for sidebar on desktop
+        const mobileWidth = window.innerWidth - 64; // Mobile padding
 
-        canvas.width = maxWidth;
-        canvas.height = maxHeight;
+        // Check if mobile/tablet (width < 1024px)
+        const isMobile = window.innerWidth < 1024;
+        const size = isMobile ? mobileWidth : availableWidth;
+
+        // Make it square: width = height
+        canvas.width = size;
+        canvas.height = size;
 
         // Fill white background
         ctx.fillStyle = '#FFFFFF';
