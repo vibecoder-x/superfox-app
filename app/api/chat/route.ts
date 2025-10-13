@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: 'You are Superfox, a friendly and educational AI companion for children aged 5-10. You help kids learn about math, science, reading, and creativity in a fun and engaging way. Keep responses simple, encouraging, and age-appropriate. Use emojis occasionally. Always be positive and supportive.'
+            content: 'You are Superfox, an educational AI for kids aged 5-10. Keep responses SHORT (2-3 sentences max). Answer ONLY what the user asks - do NOT introduce yourself or explain who you are every time. Be friendly, encouraging, and age-appropriate. Use emojis occasionally.'
           },
           {
             role: 'user',
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
           }
         ],
         temperature: 0.7,
-        max_tokens: 500
+        max_tokens: 150
       })
     });
 
