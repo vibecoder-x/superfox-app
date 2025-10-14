@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { FaPlay, FaPause, FaArrowLeft, FaArrowRight, FaTimes } from 'react-icons/fa';
+import { FaPlay, FaPause, FaArrowLeft, FaArrowRight, FaTimes, FaHome } from 'react-icons/fa';
 
 const storyPages = [
   {
@@ -155,14 +155,29 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
         exit={{ scale: 0.9, opacity: 0 }}
         className="bg-gradient-to-br from-green-50 to-blue-50 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
       >
-        {/* Header */}
-        <div className="bg-gradient-to-r from-green-400 to-blue-500 p-4 flex items-center justify-between text-white">
-          <h2 className="text-2xl md:text-3xl font-bold baloo">🌳 The Magical Forest</h2>
+        {/* Header with Logo */}
+        <div className="bg-gradient-to-r from-green-400 to-blue-500 p-3 flex items-center justify-between text-white">
+          <div className="flex items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onClose}
+              className="relative w-20 h-10 md:w-28 md:h-12 cursor-pointer"
+            >
+              <Image
+                src="/images/menulogo.png"
+                alt="Back to Menu"
+                fill
+                className="object-contain drop-shadow-lg"
+              />
+            </motion.button>
+            <h2 className="text-xl md:text-3xl font-bold baloo">🌳 The Magical Forest</h2>
+          </div>
           <button
             onClick={onClose}
             className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors"
           >
-            <FaTimes className="text-2xl" />
+            <FaTimes className="text-xl md:text-2xl" />
           </button>
         </div>
 

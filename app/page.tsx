@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
 import LearningWorld from '@/components/LearningWorld';
 import StoryLibrary from '@/components/StoryLibrary';
@@ -83,12 +84,23 @@ export default function Home() {
 
   return (
     <main className="min-h-screen">
+      <Navigation />
       <HeroSection />
-      <LearningWorld />
-      <StoryLibrary />
-      <MiniGames />
-      <AboutSuperfox />
-      <ParentZone />
+      <section id="learning">
+        <LearningWorld />
+      </section>
+      <section id="stories">
+        <StoryLibrary />
+      </section>
+      <section id="games">
+        <MiniGames />
+      </section>
+      <section id="about">
+        <AboutSuperfox />
+      </section>
+      <section id="parent">
+        <ParentZone />
+      </section>
       <Footer />
       <SuperfoxChat />
     </main>

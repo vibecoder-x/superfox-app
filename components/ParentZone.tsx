@@ -86,57 +86,29 @@ export default function ParentZone() {
           viewport={{ once: true }}
           className="bg-white rounded-3xl p-8 md:p-12 shadow-xl mb-16"
         >
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left side - Benefits List */}
-            <div>
-              <h3 className="text-4xl font-bold text-gray-800 mb-6 baloo">
-                Educational Benefits
-              </h3>
-              <p className="text-lg text-gray-700 mb-6">
-                Superfox.net is designed by educators to provide age-appropriate,
-                engaging content that supports your child&apos;s development.
-              </p>
-              <ul className="space-y-4">
-                {educationalBenefits.map((benefit, index) => (
-                  <motion.li
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.3 }}
-                    viewport={{ once: true }}
-                    className="flex items-start gap-3"
-                  >
-                    <FaCheckCircle className="text-green-500 text-xl mt-1 flex-shrink-0" />
-                    <span className="text-gray-700">{benefit}</span>
-                  </motion.li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Right side - Stats */}
-            <div className="bg-gradient-to-br from-superfox-blue to-superfox-purple rounded-3xl p-8 text-white">
-              <h3 className="text-3xl font-bold mb-8 baloo text-center">
-                Platform Statistics
-              </h3>
-              <div className="space-y-6">
-                <div className="text-center">
-                  <div className="text-6xl font-bold mb-2">500+</div>
-                  <div className="text-xl">Learning Activities</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-6xl font-bold mb-2">200+</div>
-                  <div className="text-xl">Interactive Stories</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-6xl font-bold mb-2">50+</div>
-                  <div className="text-xl">Educational Games</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-6xl font-bold mb-2">100%</div>
-                  <div className="text-xl">Ad-Free & Safe</div>
-                </div>
-              </div>
-            </div>
+          <div className="max-w-3xl mx-auto">
+            <h3 className="text-4xl font-bold text-gray-800 mb-6 baloo text-center">
+              Educational Benefits
+            </h3>
+            <p className="text-lg text-gray-700 mb-8 text-center">
+              Superfox.net is designed by educators to provide age-appropriate,
+              engaging content that supports your child&apos;s development.
+            </p>
+            <ul className="space-y-4">
+              {educationalBenefits.map((benefit, index) => (
+                <motion.li
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.3 }}
+                  viewport={{ once: true }}
+                  className="flex items-start gap-3"
+                >
+                  <FaCheckCircle className="text-green-500 text-xl mt-1 flex-shrink-0" />
+                  <span className="text-gray-700 text-lg">{benefit}</span>
+                </motion.li>
+              ))}
+            </ul>
           </div>
         </motion.div>
 

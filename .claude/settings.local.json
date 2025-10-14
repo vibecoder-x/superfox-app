@@ -14,7 +14,17 @@
       "Bash(python3:*)",
       "Bash(git init:*)",
       "Bash(git remote add:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Read(//c/Users/hp/portfolio/**)",
+      "Bash(unzip:*)",
+      "Bash(find:*)",
+      "Bash(awk:*)",
+      "Bash(git config:*)",
+      "WebSearch",
+      "Bash(git fetch:*)",
+      "Bash(git log:*)",
+      "Bash(git restore:*)",
+      "Bash(curl -X POST \"https://api.deepseek.com/v1/chat/completions\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer sk-86e1066209a0484b9699dffe59c5e009\" -d '{\n    \"\"\"\"model\"\"\"\": \"\"\"\"deepseek-chat\"\"\"\",\n    \"\"\"\"messages\"\"\"\": [\n      {\"\"\"\"role\"\"\"\": \"\"\"\"system\"\"\"\", \"\"\"\"content\"\"\"\": \"\"\"\"You are a helpful assistant.\"\"\"\"},\n      {\"\"\"\"role\"\"\"\": \"\"\"\"user\"\"\"\", \"\"\"\"content\"\"\"\": \"\"\"\"Hello!\"\"\"\"}\n    ],\n    \"\"\"\"temperature\"\"\"\": 0.7,\n    \"\"\"\"max_tokens\"\"\"\": 100\n  }')"
     ],
     "deny": [],
     "ask": []
