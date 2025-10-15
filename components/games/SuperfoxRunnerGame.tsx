@@ -18,7 +18,7 @@ type GameMode = 'sahara' | 'space' | 'forest';
 interface ModeConfig {
   name: string;
   emoji: string;
-  bgColor: string;
+  bgColor: string[];
   groundColor: string;
   obstacleColor: string;
   description: string;
@@ -66,7 +66,7 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
   const [isPowerUp, setIsPowerUp] = useState(false);
 
   // Game state refs
-  const gameLoopRef = useRef<number>();
+  const gameLoopRef = useRef<number | undefined>(undefined);
   const foxImageRef = useRef<HTMLImageElement | null>(null);
   const playerRef = useRef({
     x: 100,

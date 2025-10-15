@@ -463,7 +463,7 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
               >
                 <FaTrophy className="text-9xl text-yellow-400 mx-auto mb-4" />
                 <p className="text-5xl font-bold text-white baloo">Amazing Streak!</p>
-                <p className="text-2xl text-yellow-300">You're on fire! 🔥</p>
+                <p className="text-2xl text-yellow-300">You&apos;re on fire! 🔥</p>
               </motion.div>
             </motion.div>
           )}
