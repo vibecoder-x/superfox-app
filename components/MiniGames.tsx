@@ -5,8 +5,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { FaGamepad, FaPuzzlePiece, FaTrophy, FaFire } from 'react-icons/fa';
 import ColorMatchGame from './games/ColorMatchGame';
+import SuperfoxRunnerGame from './games/SuperfoxRunnerGame';
 
 const games = [
+  {
+    id: 'superfox-runner',
+    title: 'Superfox Runner',
+    description: 'Run, jump, and collect coins in this fast-paced adventure!',
+    difficulty: 'Medium',
+    icon: '🦊',
+    image: '/images/superfox-runner-card.png',
+  },
   {
     id: 'color-match',
     title: 'Color Match',
@@ -14,7 +23,6 @@ const games = [
     difficulty: 'Easy',
     icon: '🎨',
     image: '/images/Superfox and kids drawing together on the floor.png',
-    players: '1.2k',
   },
   {
     id: 'number-quest',
@@ -23,7 +31,6 @@ const games = [
     difficulty: 'Medium',
     icon: '🔢',
     image: '/images/Superfox counting colorful blocks.png',
-    players: '980',
   },
   {
     id: 'shape-builder',
@@ -32,7 +39,6 @@ const games = [
     difficulty: 'Easy',
     icon: '🏗️',
     image: '/images/Superfox building a robot with tools.png',
-    players: '1.5k',
   },
   {
     id: 'music-maker',
@@ -41,7 +47,6 @@ const games = [
     difficulty: 'Easy',
     icon: '🎵',
     image: '/images/Superfox playing a guitar and singing.png',
-    players: '870',
   },
 ];
 
@@ -217,6 +222,9 @@ export default function MiniGames() {
 
       {/* Game Modals */}
       <AnimatePresence>
+        {activeGame === 'superfox-runner' && (
+          <SuperfoxRunnerGame onClose={handleCloseGame} />
+        )}
         {activeGame === 'color-match' && (
           <ColorMatchGame onClose={handleCloseGame} />
         )}
