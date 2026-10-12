@@ -1,9 +1,9 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { FaArrowLeft, FaArrowRight, FaPalette, FaSave, FaUndo, FaRedo, FaHome, FaFillDrip } from 'react-icons/fa';
-import Image from 'next/image';
+import { saveArtwork } from './artworkStorage';
 
 type ColoringBook = {
   id: string;
@@ -27,7 +27,7 @@ const coloringBooks: ColoringBook[] = [
     id: 'jungle',
     title: 'Jungle Adventures',
     folder: 'jungle',
-    totalPages: 11,
+    totalPages: 13,
     coverColor: 'from-green-400 to-emerald-600',
     emoji: '🦁'
   },
@@ -35,7 +35,7 @@ const coloringBooks: ColoringBook[] = [
     id: 'dinosaurs',
     title: 'Dinosaurs World',
     folder: 'dinosaurs',
-    totalPages: 11,
+    totalPages: 13,
     coverColor: 'from-purple-400 to-indigo-600',
     emoji: '🦕'
   },
@@ -43,7 +43,7 @@ const coloringBooks: ColoringBook[] = [
     id: 'animals',
     title: 'Animals Kingdom',
     folder: 'animals',
-    totalPages: 11,
+    totalPages: 6,
     coverColor: 'from-blue-400 to-cyan-600',
     emoji: '🐘'
   }
@@ -79,74 +79,44 @@ export default function ColoringBook() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [history, setHistory] = useState<ImageData[]>([]);
   const [historyStep, setHistoryStep] = useState(-1);
-  const [svgLoaded, setSvgLoaded] = useState(false);
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [currentTool, setCurrentTool] = useState<'brush' | 'fill'>('brush');
+  const [loadError, setLoadError] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const keyboardPositionRef = useRef({ x: 400, y: 400 });
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (selectedBook && canvasRef.current) {
-      loadSVGToCanvas();
-    }
-  }, [selectedBook, currentPage]);
-
-  const loadSVGToCanvas = async () => {
     const canvas = canvasRef.current;
     if (!canvas || !selectedBook) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    setSvgLoaded(false);
+    let cancelled = false;
     setImageLoaded(false);
+    setLoadError('');
+    setHistory([]);
+    setHistoryStep(-1);
+    const img = new window.Image();
+    img.onload = () => {
+      if (cancelled) return;
+      // Keep pixel coordinates stable while CSS adapts to phone and desktop sizes.
+      canvas.width = 800;
+      canvas.height = 800;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+      ctx.drawImage(img, (canvas.width - img.width * scale) / 2, (canvas.height - img.height * scale) / 2, img.width * scale, img.height * scale);
+      setHistory([ctx.getImageData(0, 0, canvas.width, canvas.height)]);
+      setHistoryStep(0);
+      setImageLoaded(true);
+    };
+    img.onerror = () => { if (!cancelled) setLoadError('This coloring page could not load. Try another page or return to the books.'); };
+    img.src = `/coloring-books/${selectedBook.folder}/${currentPage}.svg`;
+    return () => { cancelled = true; img.onload = null; img.onerror = null; };
+  }, [selectedBook, currentPage]);
 
-    try {
-      const svgPath = `/coloring-books/${selectedBook.folder}/${currentPage}.svg`;
-
-      // Load SVG as image
-      const img = new window.Image();
-      img.crossOrigin = 'anonymous';
-
-      img.onload = () => {
-        // Set canvas size - adaptive to device width, square shape
-        const availableWidth = window.innerWidth - 450; // Leave space for sidebar on desktop
-        const mobileWidth = window.innerWidth - 64; // Mobile padding
-
-        // Check if mobile/tablet (width < 1024px)
-        const isMobile = window.innerWidth < 1024;
-        const size = isMobile ? mobileWidth : availableWidth;
-
-        // Make it square: width = height
-        canvas.width = size;
-        canvas.height = size;
-
-        // Fill white background
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Draw the SVG image centered and scaled to fill canvas
-        const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-        const x = (canvas.width - img.width * scale) / 2;
-        const y = (canvas.height - img.height * scale) / 2;
-
-        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-
-        setSvgLoaded(true);
-        setImageLoaded(true);
-        saveToHistory();
-      };
-
-      img.onerror = () => {
-        console.error('Failed to load SVG');
-        setSvgLoaded(true);
-      };
-
-      img.src = svgPath;
-    } catch (error) {
-      console.error('Error loading SVG:', error);
-      setSvgLoaded(true);
-    }
-  };
+  useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
 
   // Flood fill algorithm for paint bucket
   const hexToRgb = (hex: string) => {
@@ -221,7 +191,7 @@ export default function ColoringBook() {
     if (!ctx) return;
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const newHistory = history.slice(0, historyStep + 1);
+    const newHistory = history.slice(0, historyStep + 1).slice(-49);
     newHistory.push(imageData);
     setHistory(newHistory);
     setHistoryStep(newHistory.length - 1);
@@ -393,22 +363,14 @@ export default function ColoringBook() {
 
     try {
       const dataUrl = canvas.toDataURL('image/png');
-      const artwork = {
-        id: `coloring-${Date.now()}`,
-        dataUrl: dataUrl,
-        timestamp: Date.now()
-      };
-
-      const saved = localStorage.getItem('superfox-artworks');
-      const artworks = saved ? JSON.parse(saved) : [];
-      artworks.push(artwork);
-      localStorage.setItem('superfox-artworks', JSON.stringify(artworks));
-
+      saveArtwork(dataUrl, 'coloring');
+      setSaveError('');
       setShowSaveConfirmation(true);
-      setTimeout(() => setShowSaveConfirmation(false), 3000);
-    } catch (error) {
-      console.error('Failed to save artwork:', error);
-      alert('Failed to save to gallery');
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => setShowSaveConfirmation(false), 3000);
+    } catch {
+      setShowSaveConfirmation(false);
+      setSaveError('This device could not save your artwork. Ask an adult to check browser storage.');
     }
   };
 
@@ -428,6 +390,38 @@ export default function ColoringBook() {
     }
   };
 
+  const drawWithKeyboard = (event: React.KeyboardEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx || !imageLoaded) return;
+    const position = keyboardPositionRef.current;
+    const directions: Record<string, [number, number]> = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] };
+    const direction = directions[event.key];
+    if (direction) {
+      event.preventDefault();
+      const next = { x: Math.max(0, Math.min(799, position.x + direction[0])), y: Math.max(0, Math.min(799, position.y + direction[1])) };
+      if (event.shiftKey && currentTool === 'brush') {
+        ctx.beginPath();
+        ctx.moveTo(position.x, position.y);
+        ctx.lineTo(next.x, next.y);
+        ctx.strokeStyle = selectedColor;
+        ctx.lineWidth = brushSize;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        saveToHistory();
+      }
+      keyboardPositionRef.current = next;
+    } else if (event.code === 'Space' || event.key === 'Enter') {
+      event.preventDefault();
+      if (currentTool === 'fill') { floodFill(position.x, position.y, selectedColor); return; }
+      ctx.fillStyle = selectedColor;
+      ctx.beginPath();
+      ctx.arc(position.x, position.y, brushSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+      saveToHistory();
+    }
+  };
+
   // Book Selection View
   if (!selectedBook) {
     return (
@@ -443,7 +437,7 @@ export default function ColoringBook() {
 
         <div className="grid md:grid-cols-2 gap-6">
           {coloringBooks.map((book, index) => (
-            <motion.div
+            <motion.button
               key={book.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -465,7 +459,7 @@ export default function ColoringBook() {
                   <span className="font-bold">Click to Start!</span>
                 </div>
               </div>
-            </motion.div>
+            </motion.button>
           ))}
         </div>
       </div>
@@ -479,7 +473,7 @@ export default function ColoringBook() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between mb-6"
+        className="flex flex-wrap gap-4 items-center justify-between mb-6"
       >
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -495,7 +489,7 @@ export default function ColoringBook() {
           <p className="text-lg text-gray-600">Page {currentPage} of {selectedBook.totalPages}</p>
         </div>
 
-        <div className="w-32"></div>
+        <div className="hidden lg:block w-32"></div>
       </motion.div>
 
       {/* Main Content */}
@@ -548,6 +542,8 @@ export default function ColoringBook() {
                 }`}
                 style={{ backgroundColor: c.color }}
                 title={c.name}
+                aria-label={c.name}
+                aria-pressed={selectedColor === c.color}
               />
             ))}
           </div>
@@ -557,6 +553,7 @@ export default function ColoringBook() {
               <label className="font-bold text-gray-700 mb-2 block">Brush Size</label>
               <input
                 type="range"
+                aria-label="Brush size"
                 min="5"
                 max="40"
                 value={brushSize}
@@ -592,6 +589,7 @@ export default function ColoringBook() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={saveToGallery}
+              disabled={!imageLoaded}
               className="w-full px-4 py-3 bg-purple-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-purple-600"
             >
               <FaSave /> Save to Gallery
@@ -604,9 +602,10 @@ export default function ColoringBook() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-4 bg-green-100 border-2 border-green-500 rounded-xl p-3 text-center"
             >
-              <p className="text-green-700 font-bold">✅ Saved!</p>
+              <p role="status" className="text-green-700 font-bold">✅ Saved on this device!</p>
             </motion.div>
           )}
+          {saveError && <p role="status" className="mt-4 text-red-700">{saveError}</p>}
         </div>
 
         {/* Canvas Area */}
@@ -617,8 +616,8 @@ export default function ColoringBook() {
             className="bg-white rounded-3xl shadow-2xl p-4"
           >
             {!imageLoaded && (
-              <div className="flex items-center justify-center min-h-[80vh]">
-                <div className="text-2xl text-gray-500">Loading coloring page...</div>
+              <div className="flex items-center justify-center min-h-[40vh]">
+                <div role="status" className="text-xl text-gray-700">{loadError || 'Loading coloring page...'}</div>
               </div>
             )}
             <canvas
@@ -630,21 +629,25 @@ export default function ColoringBook() {
               onTouchStart={startDrawingTouch}
               onTouchMove={drawTouch}
               onTouchEnd={stopDrawingTouch}
+              tabIndex={0}
+              onKeyDown={drawWithKeyboard}
+              aria-label="Coloring canvas. Arrow keys move the drawing position. Shift and arrows draw strokes. Space uses the selected brush or fill tool."
               className={`border-4 border-orange-300 rounded-2xl touch-none w-full ${
                 !imageLoaded ? 'hidden' : ''
               } ${currentTool === 'fill' ? 'cursor-pointer' : 'cursor-crosshair'}`}
-              style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+              style={{ maxWidth: '100%', height: 'auto' }}
             />
           </motion.div>
 
           {/* Page Navigation */}
-          <div className="flex items-center justify-between bg-white rounded-2xl p-4 shadow-lg">
+          <p className="text-gray-700">Save to the gallery before changing pages or books. Keyboard: arrows move from the center, Shift + arrows draws, and Space uses your tool.</p>
+          <div className="flex flex-wrap gap-3 items-center justify-between bg-white rounded-2xl p-4 shadow-lg">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={prevPage}
               disabled={currentPage === 1}
-              className="px-6 py-3 bg-orange-500 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-3 bg-orange-700 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FaArrowLeft /> Previous
             </motion.button>
@@ -658,7 +661,7 @@ export default function ColoringBook() {
               whileTap={{ scale: 0.95 }}
               onClick={nextPage}
               disabled={currentPage === selectedBook.totalPages}
-              className="px-6 py-3 bg-orange-500 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-3 bg-orange-700 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next <FaArrowRight />
             </motion.button>

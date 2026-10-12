@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type EstimateLevel = 'rounding-10' | 'rounding-100' | 'guess-quantity' | 'smart-guess';
@@ -9,6 +10,7 @@ type EstimateLevel = 'rounding-10' | 'rounding-100' | 'guess-quantity' | 'smart-
 export default function EstimationStation() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<EstimateLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [number, setNumber] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [emoji, setEmoji] = useState('');
@@ -68,9 +70,7 @@ export default function EstimationStation() {
       setOptions([rounded.toString(), ...wrongOptions].sort(() => Math.random() - 0.5));
     } else {
       // Smart guessing - estimate sums
-      const a = Math.floor(Math.random() * 40) + 10;
-      const b = Math.floor(Math.random() * 40) + 10;
-      const sum = a + b;
+      const sum = Math.floor(Math.random() * 79) + 20;
       setNumber(sum);
       const rounded = roundToNearest10(sum);
       setCorrectAnswer(rounded.toString());
@@ -103,7 +103,7 @@ export default function EstimationStation() {
       setScore(score + 20);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setShowFeedback(null);
       }, 1500);
@@ -112,11 +112,11 @@ export default function EstimationStation() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setShowFeedback(null);
         }, 1500);
       }
@@ -139,6 +139,7 @@ export default function EstimationStation() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -149,7 +150,7 @@ export default function EstimationStation() {
                   {lvl.id === 'rounding-10' && 'Round to nearest 10!'}
                   {lvl.id === 'rounding-100' && 'Round to nearest 100!'}
                   {lvl.id === 'guess-quantity' && 'Estimate how many!'}
-                  {lvl.id === 'smart-guess' && 'Estimate sums quickly!'}
+                  {lvl.id === 'smart-guess' && 'Practice rounding totals!'}
                 </p>
               </div>
             </motion.div>
@@ -161,7 +162,7 @@ export default function EstimationStation() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🎯</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Estimation Expert!</h2>
         <p className="text-2xl text-gray-600 mb-6">You made {questionsAnswered} great estimates!</p>
@@ -175,8 +176,8 @@ export default function EstimationStation() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-indigo-600">Score: {score}</div>
           <div className="text-2xl font-bold text-purple-600">Estimated: {questionsAnswered}</div>
         </div>
@@ -187,13 +188,13 @@ export default function EstimationStation() {
         </div>
       </div>
 
-      <motion.div key={number} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl p-12 shadow-2xl">
+      <motion.div key={number} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
         <div className="text-center space-y-8">
           <h3 className="text-3xl font-bold text-gray-800">
-            {level === 'guess-quantity' && 'Estimate how many you see!'}
+            {level === 'guess-quantity' && 'Estimate how many, rounded to the nearest 10!'}
             {level === 'rounding-10' && `Round ${number} to the nearest 10`}
             {level === 'rounding-100' && `Round ${number} to the nearest 100`}
-            {level === 'smart-guess' && 'Make a quick estimate!'}
+            {level === 'smart-guess' && `Round this total to the nearest 10: ${number}`}
           </h3>
 
           {level === 'guess-quantity' ? (
@@ -211,7 +212,7 @@ export default function EstimationStation() {
                   </motion.div>
                 ))}
               </div>
-              <p className="text-lg text-gray-600 mt-6">Don&apos;t count them all! Make a smart guess!</p>
+              <p className="text-lg text-gray-600 mt-6">Choose the nearest multiple of 10. Count the objects if it helps!</p>
             </div>
           ) : (
             <div>
@@ -226,13 +227,13 @@ export default function EstimationStation() {
                 <p className="text-lg text-gray-600">
                   {level === 'rounding-10' && 'Tip: Look at the ones place!'}
                   {level === 'rounding-100' && 'Tip: Look at the tens place!'}
-                  {level === 'smart-guess' && 'Tip: Round both numbers first!'}
+                  {level === 'smart-guess' && 'Tip: Use the ones digit to round the total!'}
                 </p>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
             {options.map((option, index) => (
               <motion.button
                 key={option}
@@ -252,7 +253,7 @@ export default function EstimationStation() {
           </div>
 
           {showFeedback && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
               {showFeedback === 'correct' ? '✅ Great Estimate!' : `❌ It\'s ${correctAnswer}!`}
             </motion.div>
           )}

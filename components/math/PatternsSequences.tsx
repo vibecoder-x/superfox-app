@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { repeatingPattern } from '@/lib/math-activities';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type PatternLevel = 'color-patterns' | 'number-patterns' | 'shape-patterns' | 'mixed';
@@ -9,6 +11,7 @@ type PatternLevel = 'color-patterns' | 'number-patterns' | 'shape-patterns' | 'm
 export default function PatternsSequences() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<PatternLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [pattern, setPattern] = useState<string[]>([]);
   const [options, setOptions] = useState<string[]>([]);
   const [correctAnswer, setCorrectAnswer] = useState('');
@@ -35,33 +38,10 @@ export default function PatternsSequences() {
   ];
 
   const generateColorPattern = () => {
-    const selectedColors = colorEmojis.sort(() => Math.random() - 0.5).slice(0, 3);
-    const patternType = Math.random() > 0.5 ? 'AB' : 'ABC';
-
-    let newPattern: string[] = [];
-    if (patternType === 'AB') {
-      newPattern = [
-        selectedColors[0],
-        selectedColors[1],
-        selectedColors[0],
-        selectedColors[1],
-        selectedColors[0],
-      ];
-      setCorrectAnswer(selectedColors[1]);
-    } else {
-      newPattern = [
-        selectedColors[0],
-        selectedColors[1],
-        selectedColors[2],
-        selectedColors[0],
-        selectedColors[1],
-      ];
-      setCorrectAnswer(selectedColors[2]);
-    }
-
-    setPattern(newPattern);
-    const wrongOptions = colorEmojis.filter(c => c !== correctAnswer).sort(() => Math.random() - 0.5).slice(0, 2);
-    setOptions([correctAnswer, ...wrongOptions].sort(() => Math.random() - 0.5));
+    const question = repeatingPattern(colorEmojis);
+    setPattern(question.pattern);
+    setCorrectAnswer(question.answer);
+    setOptions(question.options);
   };
 
   const generateNumberPattern = () => {
@@ -87,33 +67,10 @@ export default function PatternsSequences() {
   };
 
   const generateShapePattern = () => {
-    const selectedShapes = shapeEmojis.sort(() => Math.random() - 0.5).slice(0, 3);
-    const patternType = Math.random() > 0.5 ? 'AB' : 'ABC';
-
-    let newPattern: string[] = [];
-    if (patternType === 'AB') {
-      newPattern = [
-        selectedShapes[0],
-        selectedShapes[1],
-        selectedShapes[0],
-        selectedShapes[1],
-        selectedShapes[0],
-      ];
-      setCorrectAnswer(selectedShapes[1]);
-    } else {
-      newPattern = [
-        selectedShapes[0],
-        selectedShapes[1],
-        selectedShapes[2],
-        selectedShapes[0],
-        selectedShapes[1],
-      ];
-      setCorrectAnswer(selectedShapes[2]);
-    }
-
-    setPattern(newPattern);
-    const wrongOptions = shapeEmojis.filter(s => s !== correctAnswer).sort(() => Math.random() - 0.5).slice(0, 2);
-    setOptions([correctAnswer, ...wrongOptions].sort(() => Math.random() - 0.5));
+    const question = repeatingPattern(shapeEmojis);
+    setPattern(question.pattern);
+    setCorrectAnswer(question.answer);
+    setOptions(question.options);
   };
 
   const generateQuestion = (lvl: PatternLevel) => {
@@ -152,7 +109,7 @@ export default function PatternsSequences() {
       setScore(score + 15);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setShowFeedback(null);
       }, 1500);
@@ -161,11 +118,11 @@ export default function PatternsSequences() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setShowFeedback(null);
         }, 1500);
       }
@@ -188,6 +145,7 @@ export default function PatternsSequences() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -210,7 +168,7 @@ export default function PatternsSequences() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🌟</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Pattern Expert!</h2>
         <p className="text-2xl text-gray-600 mb-6">You completed {questionsAnswered} patterns!</p>
@@ -226,8 +184,8 @@ export default function PatternsSequences() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-purple-600">Score: {score}</div>
           <div className="text-2xl font-bold text-pink-600">Patterns: {questionsAnswered}</div>
         </div>
@@ -239,7 +197,7 @@ export default function PatternsSequences() {
       </div>
 
       {pattern.length > 0 && (
-        <motion.div key={pattern.join('-')} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-12 shadow-2xl">
+        <motion.div key={pattern.join('-')} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
           <div className="text-center space-y-8">
             <h3 className="text-3xl font-bold text-gray-800">What comes next in the pattern?</h3>
 
@@ -279,7 +237,7 @@ export default function PatternsSequences() {
 
             <p className="text-lg text-gray-600">Choose the correct answer to complete the pattern!</p>
 
-            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
               {options.map((option, index) => (
                 <motion.button
                   key={option}
@@ -303,7 +261,7 @@ export default function PatternsSequences() {
             </div>
 
             {showFeedback && (
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
                 {showFeedback === 'correct' ? '✅ Perfect Pattern!' : `❌ It\'s ${correctAnswer}!`}
               </motion.div>
             )}

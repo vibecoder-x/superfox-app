@@ -1,7 +1,10 @@
 'use client';
 
+import { isExactWholeNumberAnswer } from '@/lib/math-activities';
+
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type SkipLevel = 'skip-2' | 'skip-5' | 'skip-10' | 'mixed';
@@ -9,6 +12,7 @@ type SkipLevel = 'skip-2' | 'skip-5' | 'skip-10' | 'mixed';
 export default function SkipCounting() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<SkipLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [sequence, setSequence] = useState<number[]>([]);
   const [missingIndex, setMissingIndex] = useState<number>(0);
   const [answer, setAnswer] = useState<number>(0);
@@ -16,6 +20,10 @@ export default function SkipCounting() {
   const [score, setScore] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [showFeedback, setShowFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const answerInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!showFeedback) answerInput.current?.focus();
+  }, [showFeedback]);
   const [lives, setLives] = useState(5);
 
   const levels = [
@@ -67,9 +75,9 @@ export default function SkipCounting() {
   };
 
   const handleSubmit = () => {
-    if (userInput === '') return;
+    if (userInput === '' || showFeedback) return;
 
-    const isCorrect = parseInt(userInput) === answer;
+    const isCorrect = isExactWholeNumberAnswer(userInput, answer);
     setShowFeedback(isCorrect ? 'correct' : 'incorrect');
 
     if (isCorrect) {
@@ -77,7 +85,7 @@ export default function SkipCounting() {
       setScore(score + 15);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) {
           if (level === 'mixed') {
             const skips = [2, 5, 10];
@@ -99,11 +107,11 @@ export default function SkipCounting() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setUserInput('');
           setShowFeedback(null);
         }, 1500);
@@ -132,6 +140,7 @@ export default function SkipCounting() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -151,7 +160,7 @@ export default function SkipCounting() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🏆</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Fantastic Hopping!</h2>
         <p className="text-2xl text-gray-600 mb-6">You completed {questionsAnswered} skip counting patterns!</p>
@@ -167,8 +176,8 @@ export default function SkipCounting() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-emerald-600">Score: {score}</div>
           <div className="text-2xl font-bold text-green-600">Patterns: {questionsAnswered}</div>
         </div>
@@ -180,13 +189,13 @@ export default function SkipCounting() {
       </div>
 
       {sequence.length > 0 && (
-        <motion.div key={`${sequence[0]}-${skipAmount}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-emerald-100 to-green-100 rounded-3xl p-12 shadow-2xl">
+        <motion.div key={`${sequence[0]}-${skipAmount}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-emerald-100 to-green-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
           <div className="text-center space-y-8">
             <h3 className="text-3xl font-bold text-gray-800">Find the Missing Number!</h3>
             <p className="text-xl text-gray-600">Skip counting by {skipAmount}s</p>
 
             {/* Hopping animation */}
-            <div className="flex justify-center gap-4 mb-8">
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
               {sequence.map((num, index) => (
                 <motion.div
                   key={index}
@@ -230,10 +239,10 @@ export default function SkipCounting() {
             <div className="space-y-4">
               <p className="text-xl font-bold text-gray-700">What number is missing?</p>
               <input
-                type="number"
+                ref={answerInput} type="number" aria-label="Your answer" disabled={showFeedback !== null}
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                 className="w-48 text-5xl text-center font-bold border-4 border-emerald-500 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-emerald-300"
                 placeholder="?"
                 autoFocus
@@ -242,14 +251,14 @@ export default function SkipCounting() {
 
             <button
               onClick={handleSubmit}
-              disabled={userInput === ''}
+              disabled={userInput === '' || showFeedback !== null}
               className="bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold py-4 px-12 rounded-full text-2xl hover:scale-105 transition-transform disabled:opacity-50"
             >
               Check Answer! ✓
             </button>
 
             {showFeedback && (
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
                 {showFeedback === 'correct' ? '✅ Perfect Hop!' : '❌ Try hopping again!'}
               </motion.div>
             )}

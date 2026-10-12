@@ -1,7 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { updateMathProgress } from '@/lib/math-progress';
+import { numericOptions } from '@/lib/math-questions';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { FaCheck, FaTimes, FaStar } from 'react-icons/fa';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
@@ -11,6 +14,7 @@ const emojis = ['🍎', '🍌', '🍇', '🍊', '🍓', '🍉', '🍒', '🥝', 
 
 export default function NumberGames() {
   const [gameType, setGameType] = useState<GameType>('counting');
+  const { schedule } = useActivityTimer(gameType);
   const [score, setScore] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const { playAudio } = useAudio();
@@ -19,6 +23,8 @@ export default function NumberGames() {
   const [countingItems, setCountingItems] = useState<string[]>([]);
   const [correctCount, setCorrectCount] = useState(0);
   const [selectedCount, setSelectedCount] = useState<number | null>(null);
+  const answerFocus = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => { if (selectedCount === null && answerFocus.current?.isConnected) answerFocus.current.focus(); }, [selectedCount]);
 
   // Matching Game State
   const [numberToMatch, setNumberToMatch] = useState(0);
@@ -51,14 +57,7 @@ export default function NumberGames() {
     } else if (gameType === 'matching') {
       const num = Math.floor(Math.random() * 10) + 1;
       setNumberToMatch(num);
-      const options = [num];
-      while (options.length < 4) {
-        const wrongNum = Math.floor(Math.random() * 10) + 1;
-        if (!options.includes(wrongNum)) {
-          options.push(wrongNum);
-        }
-      }
-      setMatchingOptions(options.sort(() => Math.random() - 0.5));
+      setMatchingOptions(numericOptions(num));
     } else if (gameType === 'sequencing') {
       const start = Math.floor(Math.random() * 5) + 1;
       const sequence = [start, start + 1, start + 2, start + 3, start + 4];
@@ -66,76 +65,60 @@ export default function NumberGames() {
       setMissingIndex(missing);
       setSequenceNumbers(sequence);
 
-      const options = [sequence[missing]];
-      while (options.length < 3) {
-        const wrongNum = Math.floor(Math.random() * 15) + 1;
-        if (!options.includes(wrongNum) && wrongNum !== sequence[missing]) {
-          options.push(wrongNum);
-        }
-      }
-      setSequenceOptions(options.sort(() => Math.random() - 0.5));
+      setSequenceOptions(numericOptions(sequence[missing], 3));
     }
   };
 
   const saveGameStats = (points: number) => {
-    try {
-      const savedStats = localStorage.getItem('mathAdventuresStats');
-      const stats = savedStats ? JSON.parse(savedStats) : {
-        lessonsCompleted: 0,
-        quizzesPassed: 0,
-        starsEarned: 0,
-        totalScore: 0,
-        gamesPlayed: 0,
-        lastActivity: 'Never',
-      };
-
-      stats.gamesPlayed += 1;
-      stats.starsEarned += 1; // Award 1 star per correct answer
-      stats.totalScore += points;
-      stats.lastActivity = new Date().toLocaleDateString();
-
-      localStorage.setItem('mathAdventuresStats', JSON.stringify(stats));
-    } catch (error) {
-      console.error('Failed to save game stats:', error);
-    }
+    updateMathProgress(current => ({
+      ...current, gamesPlayed: current.gamesPlayed + 1,
+      starsEarned: current.starsEarned + 1, totalScore: current.totalScore + points,
+      lastActivity: new Date().toLocaleDateString(),
+    }));
   };
 
   const handleCountingAnswer = (count: number) => {
+    if (selectedCount !== null) return;
     setSelectedCount(count);
     if (count === correctCount) {
       const newScore = score + 5;
       setScore(newScore);
       saveGameStats(5);
       playAudio(getRandomAudio(mathAudioFiles.correct));
-      setTimeout(() => generateNewGame(), 1500);
+      schedule(() => generateNewGame(), 1500);
     } else {
       playAudio(getRandomAudio(mathAudioFiles.incorrect));
+      schedule(() => setSelectedCount(null), 1500);
     }
   };
 
   const handleMatchingAnswer = (count: number) => {
+    if (selectedCount !== null) return;
     setSelectedCount(count);
     if (count === numberToMatch) {
       const newScore = score + 5;
       setScore(newScore);
       saveGameStats(5);
       playAudio(getRandomAudio(mathAudioFiles.correct));
-      setTimeout(() => generateNewGame(), 1500);
+      schedule(() => generateNewGame(), 1500);
     } else {
       playAudio(getRandomAudio(mathAudioFiles.incorrect));
+      schedule(() => setSelectedCount(null), 1500);
     }
   };
 
   const handleSequencingAnswer = (num: number) => {
+    if (selectedCount !== null) return;
     setSelectedCount(num);
     if (num === sequenceNumbers[missingIndex]) {
       const newScore = score + 5;
       setScore(newScore);
       saveGameStats(5);
       playAudio(getRandomAudio(mathAudioFiles.correct));
-      setTimeout(() => generateNewGame(), 1500);
+      schedule(() => generateNewGame(), 1500);
     } else {
       playAudio(getRandomAudio(mathAudioFiles.incorrect));
+      schedule(() => setSelectedCount(null), 1500);
     }
   };
 
@@ -150,7 +133,7 @@ export default function NumberGames() {
   return (
     <div className="w-full">
       {/* Game Type Selection */}
-      <div className="flex justify-center gap-4 mb-8">
+      <div className="flex flex-wrap justify-center gap-3 mb-8">
         <button
           onClick={() => setGameType('counting')}
           className={`px-6 py-3 rounded-full font-bold transition-all ${
@@ -196,14 +179,14 @@ export default function NumberGames() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-green-100 to-blue-100 rounded-3xl p-8 shadow-2xl"
+          className="bg-gradient-to-br from-green-100 to-blue-100 rounded-3xl p-4 md:p-8 shadow-2xl"
         >
           <h3 className="text-3xl font-bold text-center text-gray-800 mb-6 baloo">
             How many items do you see?
           </h3>
 
           {/* Items to Count */}
-          <div className="bg-white rounded-2xl p-8 mb-6 min-h-[200px] flex flex-wrap justify-center items-center gap-4">
+          <div className="bg-white rounded-2xl p-4 md:p-8 mb-6 min-h-[200px] flex flex-wrap justify-center items-center gap-4">
             {countingItems.map((item, index) => (
               <motion.span
                 key={index}
@@ -218,7 +201,7 @@ export default function NumberGames() {
           </div>
 
           {/* Answer Options */}
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             {[...Array(10)].map((_, i) => {
               const num = i + 1;
               const isSelected = selectedCount === num;
@@ -230,7 +213,7 @@ export default function NumberGames() {
                   key={num}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => handleCountingAnswer(num)}
+                  onClick={event => { answerFocus.current = event.currentTarget; handleCountingAnswer(num); }}
                   disabled={selectedCount !== null}
                   className={`py-4 px-6 rounded-xl text-2xl font-bold transition-all ${
                     showFeedback && isCorrect
@@ -255,14 +238,14 @@ export default function NumberGames() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-yellow-100 to-orange-100 rounded-3xl p-8 shadow-2xl"
+          className="bg-gradient-to-br from-yellow-100 to-orange-100 rounded-3xl p-4 md:p-8 shadow-2xl"
         >
           <h3 className="text-3xl font-bold text-center text-gray-800 mb-6 baloo">
             Count the items and match!
           </h3>
 
           {/* Items Display */}
-          <div className="bg-white rounded-2xl p-8 mb-6 min-h-[200px] flex justify-center items-center gap-3">
+          <div className="bg-white rounded-2xl p-4 md:p-8 mb-6 min-h-[200px] flex flex-wrap justify-center items-center gap-3">
             {[...Array(numberToMatch)].map((_, index) => (
               <motion.span
                 key={index}
@@ -277,7 +260,7 @@ export default function NumberGames() {
           </div>
 
           {/* Answer Options */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {matchingOptions.map((option) => {
               const isSelected = selectedCount === option;
               const isCorrect = option === numberToMatch;
@@ -288,7 +271,7 @@ export default function NumberGames() {
                   key={option}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => handleMatchingAnswer(option)}
+                  onClick={event => { answerFocus.current = event.currentTarget; handleMatchingAnswer(option); }}
                   disabled={selectedCount !== null}
                   className={`py-6 px-8 rounded-2xl text-3xl font-bold transition-all ${
                     showFeedback && isCorrect
@@ -311,14 +294,14 @@ export default function NumberGames() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-8 shadow-2xl"
+          className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-4 md:p-8 shadow-2xl"
         >
           <h3 className="text-3xl font-bold text-center text-gray-800 mb-6 baloo">
             What number is missing?
           </h3>
 
           {/* Number Sequence */}
-          <div className="flex justify-center gap-4 mb-8">
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
             {sequenceNumbers.map((num, index) => (
               <div
                 key={index}
@@ -345,7 +328,7 @@ export default function NumberGames() {
                   key={option}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => handleSequencingAnswer(option)}
+                  onClick={event => { answerFocus.current = event.currentTarget; handleSequencingAnswer(option); }}
                   disabled={selectedCount !== null}
                   className={`py-6 px-8 rounded-2xl text-3xl font-bold transition-all ${
                     showFeedback && isCorrect

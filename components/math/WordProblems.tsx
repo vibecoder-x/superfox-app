@@ -1,7 +1,10 @@
 'use client';
 
+import { isExactWholeNumberAnswer } from '@/lib/math-activities';
+
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type ProblemLevel = 'addition-stories' | 'subtraction-stories' | 'multiplication-stories' | 'mixed-stories';
@@ -15,11 +18,16 @@ interface WordProblem {
 export default function WordProblems() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<ProblemLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [currentProblem, setCurrentProblem] = useState<WordProblem | null>(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [showFeedback, setShowFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const answerInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!showFeedback) answerInput.current?.focus();
+  }, [showFeedback]);
   const [lives, setLives] = useState(5);
 
   const levels = [
@@ -70,7 +78,7 @@ export default function WordProblems() {
   const generateMultiplicationStory = (): WordProblem => {
     const templates = [
       { story: (a: number, b: number) => `There are ${a} boxes. Each box has ${b} balls. How many balls are there in total?`, emoji: '⚽' },
-      { story: (a: number, b: number) => `A spider has ${a} legs. If there are ${b} spiders, how many legs in total?`, emoji: '🕷️' },
+      { story: (a: number, b: number) => `There are ${a} baskets. Each basket has ${b} apples. How many apples are there in total?`, emoji: '🍎' },
       { story: (a: number, b: number) => `${a} children each have ${b} pencils. How many pencils are there altogether?`, emoji: '✏️' },
       { story: (a: number, b: number) => `There are ${a} rows of chairs. Each row has ${b} chairs. How many chairs total?`, emoji: '🪑' },
     ];
@@ -114,9 +122,9 @@ export default function WordProblems() {
   };
 
   const handleSubmit = () => {
-    if (!currentProblem || userAnswer === '') return;
+    if (!currentProblem || userAnswer === '' || showFeedback) return;
 
-    const isCorrect = parseInt(userAnswer) === currentProblem.answer;
+    const isCorrect = isExactWholeNumberAnswer(userAnswer, currentProblem.answer);
     setShowFeedback(isCorrect ? 'correct' : 'incorrect');
 
     if (isCorrect) {
@@ -124,7 +132,7 @@ export default function WordProblems() {
       setScore(score + 25);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setUserAnswer('');
         setShowFeedback(null);
@@ -134,11 +142,11 @@ export default function WordProblems() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 2000);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setUserAnswer('');
           setShowFeedback(null);
         }, 2000);
@@ -162,6 +170,7 @@ export default function WordProblems() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -184,7 +193,7 @@ export default function WordProblems() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">📚</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Story Solver!</h2>
         <p className="text-2xl text-gray-600 mb-6">You solved {questionsAnswered} word problems!</p>
@@ -198,8 +207,8 @@ export default function WordProblems() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-purple-600">Score: {score}</div>
           <div className="text-2xl font-bold text-pink-600">Solved: {questionsAnswered}</div>
         </div>
@@ -211,23 +220,23 @@ export default function WordProblems() {
       </div>
 
       {currentProblem && (
-        <motion.div key={currentProblem.story} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-12 shadow-2xl">
+        <motion.div key={currentProblem.story} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
           <div className="text-center space-y-8">
             <h3 className="text-3xl font-bold text-gray-800">Read and Solve!</h3>
 
             <div className="text-8xl mb-4">{currentProblem.emoji}</div>
 
-            <div className="bg-white rounded-2xl p-8 shadow-lg">
+            <div className="bg-white rounded-2xl p-4 sm:p-8 shadow-lg">
               <p className="text-2xl text-gray-800 leading-relaxed">{currentProblem.story}</p>
             </div>
 
             <div className="space-y-4">
               <p className="text-xl font-bold text-gray-700">What is the answer?</p>
               <input
-                type="number"
+                ref={answerInput} type="number" aria-label="Your answer" disabled={showFeedback !== null}
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                 className="w-48 text-5xl text-center font-bold border-4 border-purple-500 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-purple-300"
                 placeholder="?"
                 autoFocus
@@ -236,14 +245,14 @@ export default function WordProblems() {
 
             <button
               onClick={handleSubmit}
-              disabled={userAnswer === ''}
+              disabled={userAnswer === '' || showFeedback !== null}
               className="bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold py-4 px-12 rounded-full text-2xl hover:scale-105 transition-transform disabled:opacity-50"
             >
               Submit Answer! ✓
             </button>
 
             {showFeedback && (
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
                 {showFeedback === 'correct' ? '✅ Perfect!' : `❌ It\'s ${currentProblem.answer}!`}
               </motion.div>
             )}

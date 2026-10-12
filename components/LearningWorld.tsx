@@ -22,11 +22,11 @@ const learningModules = [
     color: 'from-green-400 to-green-600',
     image: '/images/Superfox reading a storybook under a big tree.png',
     stars: 5,
-    link: '#',
+    link: null,
   },
   {
     title: 'Science Lab',
-    description: 'Explore planets, nature, and exciting experiments!',
+    description: 'Discover planets and our solar system with Superfox!',
     icon: <FaFlask className="text-5xl" />,
     color: 'from-purple-400 to-purple-600',
     image: '/images/Superfox discovering planets with a telescope.png',
@@ -66,19 +66,19 @@ export default function LearningWorld() {
 
         {/* Learning Modules Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {learningModules.map((module, index) => (
-            <Link key={index} href={module.link}>
+          {learningModules.map((module, index) => {
+            const card = (
               <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1, duration: 0.5 }}
                 viewport={{ once: true }}
-                whileHover={{ scale: 1.05, y: -10 }}
-                className="relative group"
+                whileHover={module.link ? { scale: 1.05, y: -10 } : undefined}
+                className="relative group h-full"
               >
-                <div className={`bg-gradient-to-br ${module.color} rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden`}>
+                <div className={`bg-gradient-to-br ${module.color} rounded-3xl p-6 shadow-xl transition-all duration-300 overflow-hidden h-full ${module.link ? 'hover:shadow-2xl' : ''}`}>
                   {/* Background pattern */}
-                  <div className="absolute inset-0 opacity-10">
+                  <div aria-hidden="true" className="absolute inset-0 opacity-10 pointer-events-none">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16" />
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12" />
                   </div>
@@ -86,7 +86,7 @@ export default function LearningWorld() {
                   {/* Content */}
                   <div className="relative z-10">
                     {/* Icon */}
-                    <div className="text-white mb-4 flex justify-center">
+                    <div aria-hidden="true" className="text-white mb-4 flex justify-center">
                       {module.icon}
                     </div>
 
@@ -101,31 +101,37 @@ export default function LearningWorld() {
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-2xl font-bold text-white mb-2 baloo text-center">
+                    <h3 className="text-2xl font-bold text-slate-950 mb-2 baloo text-center">
                       {module.title}
                     </h3>
 
                     {/* Description */}
-                    <p className="text-white/90 text-center mb-4">
+                    <p className="text-slate-950 bg-white/95 rounded-xl p-3 text-center mb-4">
                       {module.description}
                     </p>
 
                     {/* Stars */}
-                    <div className="flex justify-center gap-1 mb-4">
+                    <div aria-hidden="true" className="flex justify-center gap-1 mb-4">
                       {[...Array(module.stars)].map((_, i) => (
                         <FaStar key={i} className="text-yellow-300 text-xl" />
                       ))}
                     </div>
 
                     {/* Start Button */}
-                    <button className="w-full bg-white text-gray-800 font-bold py-3 px-6 rounded-full hover:bg-yellow-300 transition-colors duration-300">
-                      Start Learning
-                    </button>
+                    <span className={`block text-center w-full bg-white text-gray-800 font-bold py-3 px-6 rounded-full transition-colors duration-300 ${module.link ? 'group-hover:bg-yellow-300' : ''}`}>
+                      {module.link ? 'Start Learning' : 'Coming Soon'}
+                    </span>
+                    {!module.link && <p className="text-slate-950 bg-white/95 rounded-xl p-3 mt-3 text-sm text-center">Reading lessons are being prepared. Explore the Story Library below while you wait!</p>}
                   </div>
                 </div>
               </motion.div>
-            </Link>
-          ))}
+            );
+            return module.link ? (
+              <Link key={module.title} href={module.link} aria-label={`Start ${module.title}`} className="rounded-3xl">{card}</Link>
+            ) : (
+              <div key={module.title}>{card}</div>
+            );
+          })}
         </div>
 
         {/* Progress Section */}
@@ -134,26 +140,14 @@ export default function LearningWorld() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.8 }}
           viewport={{ once: true }}
-          className="mt-16 bg-gradient-to-r from-superfox-orange to-superfox-blue rounded-3xl p-8 text-center text-white"
+          className="mt-16 bg-gradient-to-r from-superfox-orange to-superfox-blue rounded-3xl p-8 text-center text-slate-950"
         >
           <h3 className="text-3xl font-bold mb-4 baloo">Your Learning Journey</h3>
           <p className="text-xl mb-6">
-            Earn stars, badges, and level up as you learn!
+            Math Adventures saves lesson stars in this browser. Visit Math Adventures to see your progress!
           </p>
-          <div className="flex justify-center gap-8">
-            <div className="flex flex-col items-center">
-              <div className="text-5xl font-bold">0</div>
-              <div className="text-sm">Stars Earned</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-5xl font-bold">0</div>
-              <div className="text-sm">Badges</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-5xl font-bold">1</div>
-              <div className="text-sm">Level</div>
-            </div>
-          </div>
+          <Link href="/math-adventures" className="inline-block bg-white text-gray-800 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-yellow-300">See Math Progress</Link>
+          <p className="mt-6">Shared badges, levels, and progress across devices: Coming Soon.</p>
         </motion.div>
       </div>
     </section>

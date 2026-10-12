@@ -1,7 +1,10 @@
 'use client';
 
+import { isExactWholeNumberAnswer } from '@/lib/math-activities';
+
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type DifficultyLevel = 'add-to-10' | 'add-to-20' | 'add-to-50' | 'add-to-100';
@@ -15,11 +18,16 @@ interface Question {
 export default function AdditionFun() {
   const { playAudio } = useAudio();
   const [difficulty, setDifficulty] = useState<DifficultyLevel | null>(null);
+  const { schedule } = useActivityTimer(difficulty);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [showFeedback, setShowFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const answerInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!showFeedback) answerInput.current?.focus();
+  }, [showFeedback]);
   const [hearts, setHearts] = useState(5);
 
   const difficulties = [
@@ -53,9 +61,9 @@ export default function AdditionFun() {
   };
 
   const handleSubmit = () => {
-    if (!currentQuestion || userAnswer === '') return;
+    if (!currentQuestion || userAnswer === '' || showFeedback) return;
 
-    const isCorrect = parseInt(userAnswer) === currentQuestion.answer;
+    const isCorrect = isExactWholeNumberAnswer(userAnswer, currentQuestion.answer);
     setShowFeedback(isCorrect ? 'correct' : 'incorrect');
 
     if (isCorrect) {
@@ -63,7 +71,7 @@ export default function AdditionFun() {
       setScore(score + 10);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         const selectedDifficulty = difficulties.find(d => d.id === difficulty);
         if (selectedDifficulty) {
           setCurrentQuestion(generateQuestion(selectedDifficulty.maxNum));
@@ -76,12 +84,12 @@ export default function AdditionFun() {
       setHearts(hearts - 1);
 
       if (hearts - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setDifficulty(null);
           setCurrentQuestion(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setUserAnswer('');
           setShowFeedback(null);
         }, 1500);
@@ -109,6 +117,7 @@ export default function AdditionFun() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(diff.id); } }}
               onClick={() => startLevel(diff.id)}
               className={`bg-gradient-to-br ${diff.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -129,7 +138,7 @@ export default function AdditionFun() {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-3xl p-12 text-center shadow-2xl"
+        className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl"
       >
         <div className="text-8xl mb-6">😢</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Game Over!</h2>
@@ -148,8 +157,8 @@ export default function AdditionFun() {
   return (
     <div className="space-y-6">
       {/* Stats Bar */}
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-orange-600">Score: {score}</div>
           <div className="text-2xl font-bold text-blue-600">Questions: {questionsAnswered}</div>
         </div>
@@ -168,12 +177,12 @@ export default function AdditionFun() {
           key={`${currentQuestion.num1}-${currentQuestion.num2}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-orange-100 to-red-100 rounded-3xl p-12 shadow-2xl"
+          className="bg-gradient-to-br from-orange-100 to-red-100 rounded-3xl p-6 sm:p-12 shadow-2xl"
         >
           <div className="text-center space-y-8">
             <h3 className="text-3xl font-bold text-gray-800 mb-8">What is...</h3>
 
-            <div className="flex items-center justify-center gap-8 text-6xl font-bold text-orange-600">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-6xl font-bold text-orange-600">
               <motion.div
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
@@ -207,10 +216,10 @@ export default function AdditionFun() {
             </div>
 
             <input
-              type="number"
+              ref={answerInput} type="number" aria-label="Your answer" disabled={showFeedback !== null}
               value={userAnswer}
               onChange={(e) => setUserAnswer(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
               className="w-48 text-5xl text-center font-bold border-4 border-orange-500 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-orange-300"
               placeholder="?"
               autoFocus
@@ -218,7 +227,7 @@ export default function AdditionFun() {
 
             <button
               onClick={handleSubmit}
-              disabled={userAnswer === ''}
+              disabled={userAnswer === '' || showFeedback !== null}
               className="bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold py-4 px-12 rounded-full text-2xl hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Check Answer! ✓
@@ -228,7 +237,7 @@ export default function AdditionFun() {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}
+                role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}
               >
                 {showFeedback === 'correct' ? '✅ Correct!' : '❌ Try again!'}
               </motion.div>

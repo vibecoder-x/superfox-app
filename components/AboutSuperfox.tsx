@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import Image from 'next/image';
 import { FaHeart, FaBrain, FaLightbulb, FaHandsHelping } from 'react-icons/fa';
 
@@ -32,11 +32,12 @@ const superfoxQualities = [
 ];
 
 export default function AboutSuperfox() {
+  const reduceMotion = useReducedMotion();
   return (
     <section className="py-20 bg-gradient-to-b from-white to-orange-50 relative overflow-hidden">
       {/* Decorative elements */}
-      <div className="absolute top-20 right-10 text-8xl opacity-20">🦊</div>
-      <div className="absolute bottom-20 left-10 text-8xl opacity-20">⭐</div>
+      <div aria-hidden="true" className="absolute top-20 right-10 text-8xl opacity-20">🦊</div>
+      <div aria-hidden="true" className="absolute bottom-20 left-10 text-8xl opacity-20">⭐</div>
 
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
@@ -65,7 +66,7 @@ export default function AboutSuperfox() {
             className="relative"
           >
             <motion.div
-              animate={{
+              animate={reduceMotion ? undefined : {
                 y: [0, -15, 0],
               }}
               transition={{
@@ -77,7 +78,7 @@ export default function AboutSuperfox() {
             >
               <Image
                 src="/images/Superfox flying with its blue cape in the sky.png"
-                alt="Superfox Flying"
+                alt="Superfox flying through the sky wearing a blue cape and goggles"
                 fill
                 className="object-contain drop-shadow-2xl"
               />
@@ -135,11 +136,11 @@ export default function AboutSuperfox() {
                 transition={{ delay: index * 0.1, duration: 0.5 }}
                 viewport={{ once: true }}
                 whileHover={{ scale: 1.05, y: -5 }}
-                className={`bg-gradient-to-br ${quality.color} rounded-3xl p-6 text-white shadow-xl`}
+                className={`bg-gradient-to-br ${quality.color} rounded-3xl p-6 text-slate-950 shadow-xl`}
               >
-                <div className="mb-4">{quality.icon}</div>
+                <div aria-hidden="true" className="mb-4">{quality.icon}</div>
                 <h4 className="text-2xl font-bold mb-2 baloo">{quality.title}</h4>
-                <p className="text-white/90">{quality.description}</p>
+                <p>{quality.description}</p>
               </motion.div>
             ))}
           </div>
@@ -151,7 +152,7 @@ export default function AboutSuperfox() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className="bg-gradient-to-r from-superfox-blue to-superfox-purple rounded-3xl p-8 md:p-12 text-center text-white"
+          className="bg-gradient-to-r from-superfox-blue to-superfox-purple rounded-3xl p-8 md:p-12 text-center text-slate-950"
         >
           <div className="relative w-24 h-24 mx-auto mb-6">
             <Image

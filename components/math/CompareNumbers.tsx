@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { distinctNumbers, shuffleChoices } from '@/lib/math-activities';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type CompareLevel = 'less-than-10' | 'less-than-100' | 'ordering' | 'symbols';
@@ -9,8 +11,10 @@ type CompareLevel = 'less-than-10' | 'less-than-100' | 'ordering' | 'symbols';
 export default function CompareNumbers() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<CompareLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [num1, setNum1] = useState(0);
   const [num2, setNum2] = useState(0);
+  const [thirdNumber, setThirdNumber] = useState(0);
   const [options, setOptions] = useState<string[]>([]);
   const [correctAnswer, setCorrectAnswer] = useState('');
   const [score, setScore] = useState(0);
@@ -26,25 +30,10 @@ export default function CompareNumbers() {
   ];
 
   const generateQuestion = (lvl: CompareLevel) => {
-    let n1: number, n2: number;
-
-    if (lvl === 'less-than-10') {
-      n1 = Math.floor(Math.random() * 10) + 1;
-      n2 = Math.floor(Math.random() * 10) + 1;
-      while (n1 === n2) n2 = Math.floor(Math.random() * 10) + 1;
-    } else if (lvl === 'less-than-100') {
-      n1 = Math.floor(Math.random() * 100) + 1;
-      n2 = Math.floor(Math.random() * 100) + 1;
-      while (n1 === n2) n2 = Math.floor(Math.random() * 100) + 1;
-    } else if (lvl === 'ordering') {
-      n1 = Math.floor(Math.random() * 50) + 1;
-      n2 = Math.floor(Math.random() * 50) + 1;
-      while (n1 === n2) n2 = Math.floor(Math.random() * 50) + 1;
-    } else {
-      n1 = Math.floor(Math.random() * 50) + 1;
-      n2 = Math.floor(Math.random() * 50) + 1;
-      while (n1 === n2) n2 = Math.floor(Math.random() * 50) + 1;
-    }
+    const maximum = lvl === 'less-than-10' ? 10 : lvl === 'less-than-100' ? 100 : 50;
+    const [n1, differentNumber, third] = distinctNumbers(3, maximum);
+    // The symbols lesson includes equality as well as greater/less than.
+    const n2 = lvl === 'symbols' && Math.random() < 0.25 ? n1 : differentNumber;
 
     setNum1(n1);
     setNum2(n2);
@@ -52,20 +41,20 @@ export default function CompareNumbers() {
     if (lvl === 'symbols') {
       if (n1 > n2) {
         setCorrectAnswer('>');
-      } else {
+      } else if (n1 < n2) {
         setCorrectAnswer('<');
+      } else {
+        setCorrectAnswer('=');
       }
       setOptions(['>', '<', '='].sort(() => Math.random() - 0.5));
     } else if (lvl === 'ordering') {
-      const third = Math.floor(Math.random() * 50) + 1;
+      setThirdNumber(third);
       const numbers = [n1, n2, third].sort((a, b) => a - b);
       setCorrectAnswer(numbers.join(', '));
 
       const wrong1 = [n1, n2, third].sort((a, b) => b - a).join(', ');
-      const shuffled = [n1, n2, third].sort(() => Math.random() - 0.5);
-      const wrong2 = shuffled.join(', ');
-
-      setOptions([numbers.join(', '), wrong1, wrong2].filter((v, i, a) => a.indexOf(v) === i).slice(0, 3));
+      const wrong2 = [numbers[1], numbers[0], numbers[2]].join(', ');
+      setOptions(shuffleChoices([numbers.join(', '), wrong1, wrong2]));
     } else {
       if (n1 > n2) {
         setCorrectAnswer(`${n1} is greater`);
@@ -96,7 +85,7 @@ export default function CompareNumbers() {
       setScore(score + 15);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setShowFeedback(null);
       }, 1500);
@@ -105,11 +94,11 @@ export default function CompareNumbers() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setShowFeedback(null);
         }, 1500);
       }
@@ -132,6 +121,7 @@ export default function CompareNumbers() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -154,7 +144,7 @@ export default function CompareNumbers() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🏆</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Comparison Champion!</h2>
         <p className="text-2xl text-gray-600 mb-6">You compared {questionsAnswered} numbers correctly!</p>
@@ -168,8 +158,8 @@ export default function CompareNumbers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-cyan-600">Score: {score}</div>
           <div className="text-2xl font-bold text-blue-600">Compared: {questionsAnswered}</div>
         </div>
@@ -180,7 +170,7 @@ export default function CompareNumbers() {
         </div>
       </div>
 
-      <motion.div key={`${num1}-${num2}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-cyan-100 to-blue-100 rounded-3xl p-12 shadow-2xl">
+      <motion.div key={`${num1}-${num2}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-cyan-100 to-blue-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
         <div className="text-center space-y-8">
           <h3 className="text-3xl font-bold text-gray-800">
             {level === 'symbols' && 'Choose the correct symbol:'}
@@ -188,7 +178,7 @@ export default function CompareNumbers() {
             {(level === 'less-than-10' || level === 'less-than-100') && 'Which number is greater?'}
           </h3>
 
-          <div className="flex items-center justify-center gap-8">
+          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8">
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
@@ -205,9 +195,9 @@ export default function CompareNumbers() {
               >
                 ⚖️
               </motion.div>
-            ) : (
+            ) : level !== 'ordering' ? (
               <div className="text-5xl font-bold text-gray-400">vs</div>
-            )}
+            ) : null}
 
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
@@ -216,9 +206,10 @@ export default function CompareNumbers() {
             >
               <span className="text-6xl font-bold text-white">{num2}</span>
             </motion.div>
+            {level === 'ordering' && <div className="w-32 h-32 bg-purple-500 rounded-2xl flex items-center justify-center shadow-2xl"><span className="text-6xl font-bold text-white">{thirdNumber}</span></div>}
           </div>
 
-          <div className={`grid ${options.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-4 max-w-3xl mx-auto`}>
+          <div className={`grid ${options.length === 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'} gap-4 max-w-3xl mx-auto`}>
             {options.map((option, index) => (
               <motion.button
                 key={option}
@@ -238,7 +229,7 @@ export default function CompareNumbers() {
           </div>
 
           {showFeedback && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
               {showFeedback === 'correct' ? '✅ Perfect!' : `❌ It\'s ${correctAnswer}!`}
             </motion.div>
           )}

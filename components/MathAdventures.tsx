@@ -1,7 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useMathProgress } from '@/hooks/useMathProgress';
+import FeedbackSoundControl from '@/components/FeedbackSoundControl';
 import { FaGraduationCap, FaGamepad, FaChartLine, FaTimes } from 'react-icons/fa';
 import MathTutor from './math/MathTutor';
 import MathQuiz from './math/MathQuiz';
@@ -40,24 +42,7 @@ const activities = [
 
 export default function MathAdventures() {
   const [activeActivity, setActiveActivity] = useState<ActivityType>(null);
-  const [userStats, setUserStats] = useState({
-    lessonsCompleted: 0,
-    quizzesPassed: 0,
-    starsEarned: 0,
-  });
-
-  // Load stats from localStorage on mount
-  useEffect(() => {
-    const savedStats = localStorage.getItem('mathAdventuresStats');
-    if (savedStats) {
-      const stats = JSON.parse(savedStats);
-      setUserStats({
-        lessonsCompleted: stats.lessonsCompleted || 0,
-        quizzesPassed: stats.quizzesPassed || 0,
-        starsEarned: stats.starsEarned || 0,
-      });
-    }
-  }, []);
+  const userStats = useMathProgress();
 
   const renderActivity = () => {
     switch (activeActivity) {
@@ -83,6 +68,7 @@ export default function MathAdventures() {
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
+        <div className="mb-8 flex justify-center"><FeedbackSoundControl /></div>
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: -30 }}
@@ -137,7 +123,7 @@ export default function MathAdventures() {
                 viewport={{ once: true }}
                 whileHover={{ scale: 1.05, y: -10 }}
                 className="relative group cursor-pointer"
-                onClick={() => setActiveActivity(activity.id as ActivityType)}
+
               >
                 <div
                   className={`bg-gradient-to-br ${activity.color} rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden`}
@@ -166,11 +152,7 @@ export default function MathAdventures() {
                     </p>
 
                     {/* Start Button */}
-                    <Link href="/math-adventures" className="block">
-                      <button className="w-full bg-white text-gray-800 font-bold py-4 px-6 rounded-full hover:bg-yellow-300 transition-colors duration-300 transform hover:scale-105">
-                        Start Learning!
-                      </button>
-                    </Link>
+<button onClick={() => setActiveActivity(activity.id as ActivityType)} className="w-full bg-white text-gray-800 font-bold py-4 px-6 rounded-full hover:bg-yellow-300 transition-colors duration-300 transform hover:scale-105">Start Learning!</button>
                   </div>
                 </div>
               </motion.div>
@@ -210,14 +192,14 @@ export default function MathAdventures() {
             <p className="text-xl mb-6">
               Practice every day and become a math superstar!
             </p>
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="bg-white/20 backdrop-blur rounded-2xl p-6">
                 <div className="text-5xl font-bold">{userStats.lessonsCompleted}</div>
                 <div className="text-sm mt-2">Lessons Completed</div>
               </div>
               <div className="bg-white/20 backdrop-blur rounded-2xl p-6">
                 <div className="text-5xl font-bold">{userStats.quizzesPassed}</div>
-                <div className="text-sm mt-2">Quizzes Passed</div>
+                <div className="text-sm mt-2">Quizzes Finished</div>
               </div>
               <div className="bg-white/20 backdrop-blur rounded-2xl p-6">
                 <div className="text-5xl font-bold">{userStats.starsEarned}</div>

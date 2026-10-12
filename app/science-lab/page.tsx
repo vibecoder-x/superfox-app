@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useViewFocus } from '@/hooks/useViewFocus';
 import { motion } from 'framer-motion';
 import SpaceExplorer from '@/components/science/SpaceExplorer';
 import Link from 'next/link';
@@ -53,11 +54,12 @@ const scienceModules = [
 
 export default function ScienceLab() {
   const [currentModule, setCurrentModule] = useState<Module>('hub');
+  const { viewRef, rememberTrigger } = useViewFocus(currentModule, 'hub');
 
   // Space Explorer Module
   if (currentModule === 'space') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 py-8">
+      <main id="main-content" ref={viewRef} tabIndex={-1} className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 py-8">
         <div className="max-w-7xl mx-auto px-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -70,14 +72,14 @@ export default function ScienceLab() {
           </motion.button>
           <SpaceExplorer />
         </div>
-      </div>
+      </main>
     );
   }
 
   // Other modules - Coming Soon placeholders
   if (currentModule !== 'hub') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 py-8">
+      <main id="main-content" ref={viewRef} tabIndex={-1} className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 py-8">
         <div className="max-w-7xl mx-auto px-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -92,12 +94,12 @@ export default function ScienceLab() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl shadow-2xl p-12 text-center"
+            className="bg-white rounded-3xl shadow-2xl p-6 md:p-12 text-center"
           >
             <div className="text-9xl mb-6">
               {scienceModules.find(m => m.id === currentModule)?.emoji}
             </div>
-            <h2 className="text-5xl font-bold text-purple-600 mb-4 baloo">
+            <h2 className="text-3xl md:text-5xl font-bold text-purple-600 mb-4 baloo">
               {scienceModules.find(m => m.id === currentModule)?.title}
             </h2>
             <p className="text-2xl text-gray-600 mb-8">
@@ -106,24 +108,24 @@ export default function ScienceLab() {
             <div className="text-8xl">🔬✨</div>
           </motion.div>
         </div>
-      </div>
+      </main>
     );
   }
 
   // Hub View
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-green-50 py-12">
+    <main id="main-content" ref={viewRef} tabIndex={-1} className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-green-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
         {/* Back to Home */}
         <Link href="/">
-          <motion.button
+          <motion.span
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="mb-8 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl relative"
           >
             <FaArrowLeft /> Back to Home
             <span className="absolute -top-2 -right-2 text-2xl transform -rotate-12">🦊</span>
-          </motion.button>
+          </motion.span>
         </Link>
 
         {/* Header */}
@@ -132,7 +134,7 @@ export default function ScienceLab() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 mb-4 baloo">
+          <h1 className="text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 mb-4 baloo">
             🔬 Science Lab
           </h1>
           <p className="text-2xl text-gray-700">
@@ -143,22 +145,24 @@ export default function ScienceLab() {
         {/* Science Modules Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {scienceModules.map((module, index) => (
-            <motion.div
+            <motion.button
               key={module.id}
+              data-focus-return={module.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05, y: -10 }}
-              onClick={() => setCurrentModule(module.id)}
+              onClick={event => { rememberTrigger(event.currentTarget); setCurrentModule(module.id); }}
               className={`bg-gradient-to-br ${module.color} rounded-3xl p-8 cursor-pointer shadow-2xl hover:shadow-3xl transition-all`}
             >
               <div className="text-center text-white">
                 <div className="mb-6">{module.icon}</div>
                 <h2 className="text-3xl font-bold mb-4 baloo">{module.title}</h2>
+                {module.id !== 'space' && <span className="inline-block bg-white text-purple-800 font-bold text-sm rounded-full px-4 py-2 mb-4">Coming Soon</span>}
                 <p className="text-lg opacity-90 mb-6">{module.description}</p>
                 <div className="text-5xl">{module.emoji}</div>
               </div>
-            </motion.div>
+            </motion.button>
           ))}
         </div>
 
@@ -244,6 +248,6 @@ export default function ScienceLab() {
           </div>
         </motion.div>
       </div>
-    </div>
+    </main>
   );
 }

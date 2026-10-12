@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useViewFocus } from '@/hooks/useViewFocus';
 import { motion } from 'framer-motion';
 import DrawingCanvas from '@/components/creative/DrawingCanvas';
 import ArtGallery from '@/components/creative/ArtGallery';
@@ -12,10 +13,11 @@ type View = 'hub' | 'draw' | 'gallery' | 'coloring';
 
 export default function CreativeStudio() {
   const [currentView, setCurrentView] = useState<View>('hub');
+  const { viewRef, rememberTrigger } = useViewFocus(currentView, 'hub');
 
   if (currentView === 'draw') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-8">
+      <main id="main-content" ref={viewRef} tabIndex={-1} className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-8">
         <div className="max-w-7xl mx-auto px-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -28,13 +30,13 @@ export default function CreativeStudio() {
           </motion.button>
           <DrawingCanvas />
         </div>
-      </div>
+      </main>
     );
   }
 
   if (currentView === 'gallery') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-8">
+      <main id="main-content" ref={viewRef} tabIndex={-1} className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-8">
         <div className="max-w-7xl mx-auto px-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -47,13 +49,13 @@ export default function CreativeStudio() {
           </motion.button>
           <ArtGallery />
         </div>
-      </div>
+      </main>
     );
   }
 
   if (currentView === 'coloring') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50 py-8">
+      <main id="main-content" ref={viewRef} tabIndex={-1} className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50 py-8">
         <div className="max-w-7xl mx-auto px-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -66,23 +68,23 @@ export default function CreativeStudio() {
           </motion.button>
           <ColoringBook />
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-12">
+    <main id="main-content" ref={viewRef} tabIndex={-1} className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-12">
       <div className="max-w-6xl mx-auto px-4">
         {/* Back to Home */}
         <Link href="/">
-          <motion.button
+          <motion.span
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="mb-8 px-6 py-3 bg-white text-purple-600 rounded-full font-bold flex items-center gap-2 shadow-lg hover:shadow-xl relative"
           >
             <FaArrowLeft /> Back to Home
             <span className="absolute -top-2 -right-2 text-2xl transform -rotate-12">🦊</span>
-          </motion.button>
+          </motion.span>
         </Link>
 
         {/* Header */}
@@ -91,7 +93,7 @@ export default function CreativeStudio() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 mb-4 baloo">
+          <h1 className="text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 mb-4 baloo">
             🎨 Creative Studio
           </h1>
           <p className="text-2xl text-gray-700">
@@ -102,12 +104,13 @@ export default function CreativeStudio() {
         {/* Main Menu */}
         <div className="grid md:grid-cols-3 gap-8 mb-12">
           {/* Drawing Canvas Card */}
-          <motion.div
+          <motion.button
+            data-focus-return="draw"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 }}
             whileHover={{ scale: 1.05, y: -10 }}
-            onClick={() => setCurrentView('draw')}
+            onClick={event => { rememberTrigger(event.currentTarget); setCurrentView('draw'); }}
             className="bg-gradient-to-br from-purple-400 to-indigo-600 rounded-3xl p-8 cursor-pointer shadow-2xl hover:shadow-3xl transition-all"
           >
             <div className="text-center text-white">
@@ -124,15 +127,16 @@ export default function CreativeStudio() {
                 <li>✓ Download your art</li>
               </ul>
             </div>
-          </motion.div>
+          </motion.button>
 
           {/* Coloring Books Card */}
-          <motion.div
+          <motion.button
+            data-focus-return="coloring"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
             whileHover={{ scale: 1.05, y: -10 }}
-            onClick={() => setCurrentView('coloring')}
+            onClick={event => { rememberTrigger(event.currentTarget); setCurrentView('coloring'); }}
             className="bg-gradient-to-br from-orange-400 to-red-600 rounded-3xl p-8 cursor-pointer shadow-2xl hover:shadow-3xl transition-all"
           >
             <div className="text-center text-white">
@@ -143,21 +147,22 @@ export default function CreativeStudio() {
               </p>
               <ul className="text-left space-y-2 text-lg">
                 <li>✓ 4 themed coloring books</li>
-                <li>✓ 11 pages per book</li>
+                <li>✓ 6–13 pages per book</li>
                 <li>✓ 18 vibrant colors</li>
                 <li>✓ Page navigation</li>
                 <li>✓ Save to gallery</li>
               </ul>
             </div>
-          </motion.div>
+          </motion.button>
 
           {/* Art Gallery Card */}
-          <motion.div
+          <motion.button
+            data-focus-return="gallery"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
             whileHover={{ scale: 1.05, y: -10 }}
-            onClick={() => setCurrentView('gallery')}
+            onClick={event => { rememberTrigger(event.currentTarget); setCurrentView('gallery'); }}
             className="bg-gradient-to-br from-pink-400 to-rose-600 rounded-3xl p-8 cursor-pointer shadow-2xl hover:shadow-3xl transition-all"
           >
             <div className="text-center text-white">
@@ -174,7 +179,7 @@ export default function CreativeStudio() {
                 <li>✓ Organized collection</li>
               </ul>
             </div>
-          </motion.div>
+          </motion.button>
         </div>
 
         {/* Features Section */}
@@ -200,7 +205,7 @@ export default function CreativeStudio() {
               <div className="text-5xl mb-3">🎨</div>
               <h4 className="font-bold text-xl mb-2">Color Palette</h4>
               <p className="text-gray-700">
-                20+ vibrant colors to bring your imagination to life
+                12 drawing colors and 18 coloring colors to bring your imagination to life
               </p>
             </div>
 
@@ -216,7 +221,7 @@ export default function CreativeStudio() {
               <div className="text-5xl mb-3">↩️</div>
               <h4 className="font-bold text-xl mb-2">Undo/Redo</h4>
               <p className="text-gray-700">
-                Fix mistakes easily with unlimited undo and redo
+                Fix mistakes easily with undo and redo for your recent strokes
               </p>
             </div>
 
@@ -224,7 +229,7 @@ export default function CreativeStudio() {
               <div className="text-5xl mb-3">💾</div>
               <h4 className="font-bold text-xl mb-2">Save & Download</h4>
               <p className="text-gray-700">
-                Keep your artwork forever as PNG images
+                Save on this device or download a PNG to keep your artwork
               </p>
             </div>
 
@@ -271,6 +276,6 @@ export default function CreativeStudio() {
           </div>
         </motion.div>
       </div>
-    </div>
+    </main>
   );
 }

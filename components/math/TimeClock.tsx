@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { clockChoices, formatClockTime } from '@/lib/math-activities';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type TimeLevel = 'hour-hand' | 'half-hour' | 'digital-time' | 'time-matching';
@@ -9,6 +11,7 @@ type TimeLevel = 'hour-hand' | 'half-hour' | 'digital-time' | 'time-matching';
 export default function TimeClock() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<TimeLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [hour, setHour] = useState(0);
   const [minute, setMinute] = useState(0);
   const [options, setOptions] = useState<string[]>([]);
@@ -24,24 +27,6 @@ export default function TimeClock() {
     { id: 'digital-time' as TimeLevel, title: 'Digital Clock', emoji: '⏰', color: 'from-green-400 to-teal-600' },
     { id: 'time-matching' as TimeLevel, title: 'Time Matching', emoji: '⏱️', color: 'from-orange-400 to-red-600' },
   ];
-
-  const formatTime = (h: number, m: number) => {
-    const period = h >= 12 ? 'PM' : 'AM';
-    const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-    const displayMinute = m.toString().padStart(2, '0');
-    return `${displayHour}:${displayMinute} ${period}`;
-  };
-
-  const formatTimeWords = (h: number, m: number) => {
-    const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-    if (m === 0) {
-      return `${displayHour} o'clock`;
-    } else if (m === 30) {
-      return `${displayHour}:30`;
-    } else {
-      return `${displayHour}:${m.toString().padStart(2, '0')}`;
-    }
-  };
 
   const generateQuestion = (lvl: TimeLevel) => {
     let newHour: number;
@@ -64,22 +49,10 @@ export default function TimeClock() {
     setHour(newHour);
     setMinute(newMinute);
 
-    const correct = formatTime(newHour, newMinute);
+    const correct = formatClockTime(newHour, newMinute);
     setCorrectAnswer(correct);
 
-    // Generate wrong options
-    const wrongOptions: string[] = [];
-    while (wrongOptions.length < 2) {
-      const wrongH = Math.floor(Math.random() * 12) + 1;
-      const wrongM = lvl === 'hour-hand' ? 0 : Math.floor(Math.random() * 4) * 15;
-      const wrongTime = formatTime(wrongH, wrongM);
-      if (wrongTime !== correct && !wrongOptions.includes(wrongTime)) {
-        wrongOptions.push(wrongTime);
-      }
-    }
-
-    const allOptions = [correct, ...wrongOptions].sort(() => Math.random() - 0.5);
-    setOptions(allOptions);
+    setOptions(clockChoices(newHour, newMinute, lvl === 'hour-hand'));
   };
 
   const startLevel = (lvl: TimeLevel) => {
@@ -102,7 +75,7 @@ export default function TimeClock() {
       setScore(score + 15);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setShowFeedback(null);
       }, 1500);
@@ -111,11 +84,11 @@ export default function TimeClock() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setShowFeedback(null);
         }, 1500);
       }
@@ -123,67 +96,21 @@ export default function TimeClock() {
   };
 
   const renderClock = () => {
-    const hourAngle = ((hour % 12) * 30) + (minute * 0.5) - 90;
-    const minuteAngle = (minute * 6) - 90;
-
+    const hourAngle = (((hour % 12) * 30) + (minute * 0.5) - 90) * Math.PI / 180;
+    const minuteAngle = ((minute * 6) - 90) * Math.PI / 180;
     return (
-      <div className="relative w-80 h-80 bg-white rounded-full border-8 border-blue-600 shadow-2xl">
-        {/* Clock numbers */}
-        {[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((num, index) => {
-          const angle = (index * 30) - 90;
-          const x = 140 * Math.cos(angle * Math.PI / 180);
-          const y = 140 * Math.sin(angle * Math.PI / 180);
-          return (
-            <div
-              key={num}
-              className="absolute text-2xl font-bold text-gray-700"
-              style={{
-                left: `calc(50% + ${x}px)`,
-                top: `calc(50% + ${y}px)`,
-                transform: 'translate(-50%, -50%)',
-              }}
-            >
-              {num}
-            </div>
-          );
+      <svg viewBox="0 0 256 256" role="img" aria-label={`Analog clock showing ${formatClockTime(hour, minute)}`} className="w-full max-w-64 aspect-square drop-shadow-xl">
+        <circle cx="128" cy="128" r="120" fill="white" stroke="#2563eb" strokeWidth="8" />
+        {[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((number, index) => {
+          const angle = (index * 30 - 90) * Math.PI / 180;
+          return <text key={number} x={128 + 99 * Math.cos(angle)} y={128 + 99 * Math.sin(angle)} textAnchor="middle" dominantBaseline="middle" fill="#374151" fontSize="22" fontWeight="bold">{number}</text>;
         })}
-
-        {/* Center dot */}
-        <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-blue-600 rounded-full transform -translate-x-1/2 -translate-y-1/2 z-20"></div>
-
-        {/* Hour hand */}
-        <motion.div
-          className="absolute top-1/2 left-1/2 origin-left"
-          style={{
-            width: '80px',
-            height: '8px',
-            backgroundColor: '#1e40af',
-            borderRadius: '4px',
-            transform: `translate(-10px, -4px) rotate(${hourAngle}deg)`,
-          }}
-          initial={{ rotate: hourAngle - 360 }}
-          animate={{ rotate: hourAngle }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-        />
-
-        {/* Minute hand */}
-        <motion.div
-          className="absolute top-1/2 left-1/2 origin-left"
-          style={{
-            width: '120px',
-            height: '6px',
-            backgroundColor: '#3b82f6',
-            borderRadius: '3px',
-            transform: `translate(-10px, -3px) rotate(${minuteAngle}deg)`,
-          }}
-          initial={{ rotate: minuteAngle - 360 }}
-          animate={{ rotate: minuteAngle }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-        />
-      </div>
+        <line x1="128" y1="128" x2={128 + 64 * Math.cos(hourAngle)} y2={128 + 64 * Math.sin(hourAngle)} stroke="#1e40af" strokeWidth="8" strokeLinecap="round" />
+        <line x1="128" y1="128" x2={128 + 92 * Math.cos(minuteAngle)} y2={128 + 92 * Math.sin(minuteAngle)} stroke="#3b82f6" strokeWidth="6" strokeLinecap="round" />
+        <circle cx="128" cy="128" r="7" fill="#2563eb" />
+      </svg>
     );
   };
-
   if (!level) {
     return (
       <div className="space-y-8">
@@ -200,6 +127,7 @@ export default function TimeClock() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -222,7 +150,7 @@ export default function TimeClock() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">⏰</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Time Expert!</h2>
         <p className="text-2xl text-gray-600 mb-6">You read {questionsAnswered} clocks correctly!</p>
@@ -236,8 +164,8 @@ export default function TimeClock() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-blue-600">Score: {score}</div>
           <div className="text-2xl font-bold text-cyan-600">Times: {questionsAnswered}</div>
         </div>
@@ -248,17 +176,17 @@ export default function TimeClock() {
         </div>
       </div>
 
-      <motion.div key={`${hour}-${minute}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-3xl p-12 shadow-2xl">
+      <motion.div key={`${hour}-${minute}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
         <div className="text-center space-y-8">
           <h3 className="text-3xl font-bold text-gray-800">What time is shown on the clock?</h3>
 
           <div className="flex justify-center">
-            {renderClock()}
+            {level === 'digital-time' ? <div className="bg-gray-900 text-green-300 rounded-2xl px-6 py-8 text-5xl font-bold">{formatClockTime(hour, minute)}</div> : renderClock()}
           </div>
 
           <p className="text-lg text-gray-600">Look at the clock hands and choose the correct time!</p>
 
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
             {options.map((option, index) => (
               <motion.button
                 key={option}
@@ -278,7 +206,7 @@ export default function TimeClock() {
           </div>
 
           {showFeedback && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
               {showFeedback === 'correct' ? '✅ Perfect Time!' : `❌ It\'s ${correctAnswer}!`}
             </motion.div>
           )}

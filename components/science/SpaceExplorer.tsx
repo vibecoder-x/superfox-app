@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import ActivityDialog from '@/components/ActivityDialog';
 import { FaRocket, FaTimes, FaStar } from 'react-icons/fa';
 import Image from 'next/image';
 
@@ -199,6 +200,14 @@ export default function SpaceExplorer() {
   const [score, setScore] = useState(0);
   const [quizMode, setQuizMode] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [factIndex, setFactIndex] = useState(0);
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const timer = window.setInterval(() => setFactIndex(index => (index + 1) % solarSystemFacts.length), 5000);
+    return () => window.clearInterval(timer);
+  }, [reduceMotion]);
 
   const quizQuestions = [
     {
@@ -241,18 +250,18 @@ export default function SpaceExplorer() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6">
+    <div className="w-full max-w-7xl mx-auto p-2 sm:p-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-8"
       >
-        <h1 className="text-5xl font-bold text-purple-600 mb-2 baloo flex items-center justify-center gap-3">
+        <h1 className="text-3xl md:text-5xl font-bold text-purple-600 mb-2 baloo flex flex-wrap items-center justify-center gap-3">
           <FaRocket className="text-6xl" /> Space Explorer
         </h1>
         <p className="text-xl text-gray-700">Explore the amazing planets in our solar system!</p>
-        <div className="mt-4 flex justify-center gap-4">
+        <div className="mt-4 flex flex-wrap justify-center gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -267,10 +276,11 @@ export default function SpaceExplorer() {
             onClick={() => {
               setQuizMode(!quizMode);
               setCurrentQuestion(0);
+              if (!quizMode) setScore(0);
             }}
-            className="px-6 py-3 bg-yellow-500 text-white rounded-full font-bold"
+            className="px-6 py-3 bg-yellow-400 text-gray-950 rounded-full font-bold"
           >
-            🧠 Take Quiz
+            {quizMode ? 'Back to Planets' : '🧠 Take Quiz'}
           </motion.button>
         </div>
         {score > 0 && (
@@ -319,19 +329,19 @@ export default function SpaceExplorer() {
                 key={i}
                 className="absolute bg-white rounded-full"
                 style={{
-                  width: Math.random() * 3 + 1,
-                  height: Math.random() * 3 + 1,
-                  top: `${Math.random() * 100}%`,
-                  left: `${Math.random() * 100}%`
+                  width: i % 3 + 1,
+                  height: i % 3 + 1,
+                  top: `${(i * 37) % 100}%`,
+                  left: `${(i * 61) % 100}%`
                 }}
-                animate={{
+                animate={reduceMotion ? { opacity: 0.6 } : {
                   opacity: [0.2, 1, 0.2],
                   scale: [1, 1.5, 1]
                 }}
                 transition={{
-                  duration: Math.random() * 3 + 2,
+                  duration: i % 3 + 2,
                   repeat: Infinity,
-                  delay: Math.random() * 2
+                  delay: (i % 5) / 3
                 }}
               />
             ))}
@@ -340,7 +350,7 @@ export default function SpaceExplorer() {
           {/* Sun */}
           <motion.div
             className="absolute left-4 top-1/2 -translate-y-1/2"
-            animate={{
+            animate={reduceMotion ? {} : {
               scale: [1, 1.05, 1],
               rotate: [0, 360]
             }}
@@ -361,16 +371,19 @@ export default function SpaceExplorer() {
           </motion.div>
 
           {/* Planets */}
-          <div className="relative z-10 flex items-center justify-around h-[500px] pl-40">
+          <p className="relative z-10 text-white text-center">Scroll across to explore all eight planets. Planet sizes are illustrated, not to scale.</p>
+          <div className="relative z-10 overflow-x-auto pb-6" tabIndex={0} aria-label="Solar system planets; scroll horizontally to explore">
+          <div className="flex items-center justify-around gap-6 min-w-[1500px] h-[500px] pl-40">
             {planets.map((planet, index) => (
-              <motion.div
+              <motion.button
                 key={planet.id}
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ scale: 1.15 }}
                 onClick={() => setSelectedPlanet(planet)}
-                className="cursor-pointer relative group"
+                aria-label={`Explore ${planet.name}`}
+                className="cursor-pointer relative group shrink-0"
                 style={{
                   width: planet.size,
                   height: planet.size
@@ -378,7 +391,7 @@ export default function SpaceExplorer() {
               >
                 <motion.div
                   className="w-full h-full relative"
-                  animate={{
+                  animate={reduceMotion ? {} : {
                     y: [0, -10, 0],
                     rotate: [0, 360]
                   }}
@@ -401,25 +414,26 @@ export default function SpaceExplorer() {
                     className="object-contain filter drop-shadow-xl"
                   />
                 </motion.div>
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-white font-bold text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 px-2 py-1 rounded">
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-white font-bold text-sm whitespace-nowrap opacity-100 bg-black bg-opacity-50 px-2 py-1 rounded">
                   {planet.name}
                 </div>
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-purple-600 px-2 py-1 rounded">
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-white text-xs opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity bg-purple-600 px-2 py-1 rounded">
                   {planet.diameter.toLocaleString()} km
                 </div>
-              </motion.div>
+              </motion.button>
             ))}
+          </div>
           </div>
 
           {/* Solar System Facts */}
-          <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 rounded-2xl p-4">
+          <div className="relative z-10 mt-4 bg-black bg-opacity-50 rounded-2xl p-4">
             <motion.p
-              key={Math.floor(Date.now() / 5000)}
+              key={factIndex}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-white text-center text-lg"
             >
-              💡 {solarSystemFacts[Math.floor(Date.now() / 5000) % solarSystemFacts.length]}
+              💡 {solarSystemFacts[factIndex]}
             </motion.p>
           </div>
         </div>
@@ -429,7 +443,7 @@ export default function SpaceExplorer() {
       {!showSolarSystem && !quizMode && (
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {planets.map((planet, index) => (
-            <motion.div
+            <motion.button
               key={planet.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -448,7 +462,7 @@ export default function SpaceExplorer() {
                   <div>📅 Year: {planet.yearLength}</div>
                 </div>
               </div>
-            </motion.div>
+            </motion.button>
           ))}
         </div>
       )}
@@ -456,21 +470,21 @@ export default function SpaceExplorer() {
       {/* Planet Detail Modal */}
       <AnimatePresence>
         {selectedPlanet && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <ActivityDialog
+            label={`${selectedPlanet.name} planet facts`}
+            closeOnBackdrop
+            onClose={() => setSelectedPlanet(null)}
             className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-            onClick={() => setSelectedPlanet(null)}
           >
             <motion.div
               initial={{ scale: 0.8, y: 50 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.8, y: 50 }}
               onClick={(e) => e.stopPropagation()}
-              className={`bg-gradient-to-br ${selectedPlanet.color} rounded-3xl p-8 max-w-2xl w-full relative`}
+              className={`bg-gradient-to-br ${selectedPlanet.color} rounded-3xl p-6 sm:p-8 max-w-2xl w-full relative max-h-[90dvh] overflow-y-auto`}
             >
               <button
+                aria-label="Close planet facts"
                 onClick={() => setSelectedPlanet(null)}
                 className="absolute top-4 right-4 text-white text-3xl hover:scale-110 transition-transform"
               >
@@ -479,7 +493,7 @@ export default function SpaceExplorer() {
 
               <div className="text-center text-white">
                 <div className="text-9xl mb-6">{selectedPlanet.emoji}</div>
-                <h2 className="text-5xl font-bold mb-4 baloo">{selectedPlanet.name}</h2>
+                <h2 className="text-3xl sm:text-5xl font-bold mb-4 baloo">{selectedPlanet.name}</h2>
                 <p className="text-2xl mb-6 opacity-90">{selectedPlanet.type}</p>
 
                 <div className="grid grid-cols-2 gap-4 mb-6 text-lg">
@@ -516,7 +530,7 @@ export default function SpaceExplorer() {
                 </div>
               </div>
             </motion.div>
-          </motion.div>
+          </ActivityDialog>
         )}
       </AnimatePresence>
     </div>

@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { fractionSectorPath } from '@/lib/math-activities';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type FractionLevel = 'halves' | 'quarters' | 'thirds' | 'mixed';
@@ -15,6 +17,7 @@ interface Fraction {
 export default function FractionsFun() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<FractionLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [currentFraction, setCurrentFraction] = useState<Fraction | null>(null);
   const [options, setOptions] = useState<string[]>([]);
   const [correctAnswer, setCorrectAnswer] = useState('');
@@ -59,7 +62,7 @@ export default function FractionsFun() {
 
     // Create options
     const wrongOptions = fractions
-      .filter(f => f.name !== selectedFraction.name)
+      .filter(f => f.numerator * selectedFraction.denominator !== selectedFraction.numerator * f.denominator)
       .sort(() => Math.random() - 0.5)
       .slice(0, 2)
       .map(f => f.name);
@@ -88,7 +91,7 @@ export default function FractionsFun() {
       setScore(score + 20);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setShowFeedback(null);
       }, 1500);
@@ -97,11 +100,11 @@ export default function FractionsFun() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setShowFeedback(null);
         }, 1500);
       }
@@ -109,40 +112,23 @@ export default function FractionsFun() {
   };
 
   const renderPizza = (fraction: Fraction) => {
-    const slices = [];
-    const filledSlices = fraction.numerator;
-    const totalSlices = fraction.denominator;
-
-    for (let i = 0; i < totalSlices; i++) {
-      const angle = (360 / totalSlices) * i;
-      const isFilled = i < filledSlices;
-
-      slices.push(
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: i * 0.1 }}
-          className="absolute w-full h-full"
-          style={{
-            transform: `rotate(${angle}deg)`,
-          }}
-        >
-          <div
-            className={`absolute top-0 left-1/2 w-0 h-0 border-l-[100px] border-r-[100px] border-t-[100px] border-l-transparent border-r-transparent ${
-              isFilled ? 'border-t-orange-500' : 'border-t-gray-300'
-            }`}
-            style={{
-              transform: `translateX(-50%) rotate(${-180 / totalSlices}deg)`,
-              transformOrigin: 'bottom center',
-              clipPath: `polygon(50% 0%, 0% 100%, 100% 100%)`,
-            }}
+    return (
+      <svg viewBox="0 0 256 256" role="img" aria-label={`${fraction.numerator} of ${fraction.denominator} equal pizza slices are shaded`} className="w-full h-full">
+        <circle cx="128" cy="128" r="120" fill="#fef08a" stroke="#c2410c" strokeWidth="8" />
+        {Array.from({ length: fraction.denominator }, (_, index) => (
+          <motion.path
+            key={index}
+            d={fractionSectorPath(index, fraction.denominator)}
+            fill={index < fraction.numerator ? '#f97316' : '#d1d5db'}
+            stroke="white"
+            strokeWidth="3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: index * 0.1 }}
           />
-        </motion.div>
-      );
-    }
-
-    return slices;
+        ))}
+      </svg>
+    );
   };
 
   const renderRectangleBars = (fraction: Fraction) => {
@@ -179,6 +165,7 @@ export default function FractionsFun() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -201,7 +188,7 @@ export default function FractionsFun() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🎉</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Fraction Master!</h2>
         <p className="text-2xl text-gray-600 mb-6">You identified {questionsAnswered} fractions correctly!</p>
@@ -215,8 +202,8 @@ export default function FractionsFun() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-orange-600">Score: {score}</div>
           <div className="text-2xl font-bold text-yellow-600">Fractions: {questionsAnswered}</div>
         </div>
@@ -228,15 +215,14 @@ export default function FractionsFun() {
       </div>
 
       {currentFraction && (
-        <motion.div key={`${currentFraction.numerator}-${currentFraction.denominator}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-orange-100 to-yellow-100 rounded-3xl p-12 shadow-2xl">
+        <motion.div key={`${currentFraction.numerator}-${currentFraction.denominator}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-orange-100 to-yellow-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
           <div className="text-center space-y-8">
             <h3 className="text-3xl font-bold text-gray-800">What fraction is shown?</h3>
 
-            <div className="flex justify-center items-center gap-12">
+            <div className="flex flex-wrap justify-center items-center gap-6">
               {/* Pizza visualization for halves and quarters */}
-              {currentFraction.denominator <= 4 && (
-                <div className="relative w-64 h-64">
-                  <div className="absolute inset-0 bg-yellow-200 rounded-full border-8 border-orange-600"></div>
+              {currentFraction.denominator !== 3 && (
+                <div className="relative w-full max-w-64 aspect-square">
                   <div className="relative w-full h-full">
                     {renderPizza(currentFraction)}
                   </div>
@@ -245,7 +231,7 @@ export default function FractionsFun() {
 
               {/* Bar visualization for thirds */}
               {currentFraction.denominator === 3 && (
-                <div className="grid grid-cols-3 gap-2 w-96">
+                <div role="img" aria-label={`${currentFraction.numerator} of 3 equal bars are shaded`} className="grid grid-cols-3 gap-2 w-full max-w-96">
                   {renderRectangleBars(currentFraction)}
                 </div>
               )}
@@ -256,10 +242,10 @@ export default function FractionsFun() {
             </div>
 
             <p className="text-xl text-gray-600">
-              {currentFraction.numerator} out of {currentFraction.denominator} {currentFraction.denominator === 2 ? 'half' : currentFraction.denominator === 3 ? 'third' : 'quarter'}{currentFraction.denominator > 1 ? 's' : ''}
+              Shaded parts: {currentFraction.numerator} of {currentFraction.denominator} equal parts
             </p>
 
-            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
               {options.map((option, index) => (
                 <motion.button
                   key={option}
@@ -279,7 +265,7 @@ export default function FractionsFun() {
             </div>
 
             {showFeedback && (
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
                 {showFeedback === 'correct' ? '✅ Perfect!' : `❌ It\'s ${correctAnswer}!`}
               </motion.div>
             )}

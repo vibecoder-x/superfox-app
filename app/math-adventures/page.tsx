@@ -1,7 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useMathProgress } from '@/hooks/useMathProgress';
+import FeedbackSoundControl from '@/components/FeedbackSoundControl';
+import { updateMathProgress } from '@/lib/math-progress';
 import { FaGraduationCap, FaGamepad, FaChartLine, FaTimes, FaHome } from 'react-icons/fa';
 import MathTutor from '@/components/math/MathTutor';
 import MathQuiz from '@/components/math/MathQuiz';
@@ -30,15 +33,6 @@ import Link from 'next/link';
 
 type ActivityType = null | 'tutor' | 'quiz' | 'games' | 'addition' | 'subtraction' | 'multiplication' | 'division' | 'shapes' | 'patterns' | 'fractions' | 'counting' | 'money' | 'time' | 'measurement' | 'place-value' | 'word-problems' | 'skip-counting' | 'odd-even' | 'comparing' | 'estimation' | 'data-graphs' | 'decimals';
 
-interface UserStats {
-  lessonsCompleted: number;
-  quizzesPassed: number;
-  starsEarned: number;
-  totalScore: number;
-  gamesPlayed: number;
-  lastActivity: string;
-}
-
 const activities = [
   {
     id: 'tutor',
@@ -47,7 +41,7 @@ const activities = [
     emoji: '👨‍🏫',
     icon: <FaGraduationCap className="text-6xl" />,
     color: 'from-blue-400 to-blue-600',
-    topics: ['Addition', 'Subtraction', 'Counting', 'Number Recognition'],
+    topics: ['Counting 1–10', 'Simple Addition', 'Simple Subtraction'],
   },
   {
     id: 'quiz',
@@ -56,7 +50,7 @@ const activities = [
     emoji: '📝',
     icon: <FaChartLine className="text-6xl" />,
     color: 'from-purple-400 to-purple-600',
-    topics: ['Easy Quiz', 'Medium Quiz', 'Hard Quiz', 'Mixed Challenge'],
+    topics: ['Easy Addition', 'Addition & Subtraction', 'Hard Quiz'],
   },
   {
     id: 'games',
@@ -65,7 +59,7 @@ const activities = [
     emoji: '🎮',
     icon: <FaGamepad className="text-6xl" />,
     color: 'from-green-400 to-green-600',
-    topics: ['Counting Game', 'Pattern Match', 'Shape Sorting', 'Skip Counting'],
+    topics: ['Counting', 'Number Matching', 'Sequencing'],
   },
   {
     id: 'addition',
@@ -110,7 +104,7 @@ const activities = [
     emoji: '🔷',
     icon: <div className="text-6xl">🔷</div>,
     color: 'from-teal-400 to-green-600',
-    topics: ['2D Shapes', '3D Shapes', 'Symmetry', 'Angles'],
+    topics: ['2D Shapes', '3D Shapes', 'Shape Matching', 'Symmetry'],
   },
   {
     id: 'patterns',
@@ -146,7 +140,7 @@ const activities = [
     emoji: '💰',
     icon: <div className="text-6xl">💰</div>,
     color: 'from-emerald-400 to-teal-600',
-    topics: ['Coins', 'Dollars', 'Change', 'Buying & Selling'],
+    topics: ['US Coins', 'Dollar Bills', 'Count Money', 'Make Change'],
   },
   {
     id: 'time',
@@ -155,7 +149,7 @@ const activities = [
     emoji: '⏰',
     icon: <div className="text-6xl">⏰</div>,
     color: 'from-sky-400 to-blue-600',
-    topics: ['Hour Hand', 'Minute Hand', 'Digital Clock', 'Time Words'],
+    topics: ['Hour Hand', 'Half Hour', 'Digital Clock', 'Time Matching'],
   },
   {
     id: 'measurement',
@@ -182,7 +176,7 @@ const activities = [
     emoji: '📖',
     icon: <div className="text-6xl">📖</div>,
     color: 'from-fuchsia-400 to-purple-600',
-    topics: ['Simple Stories', 'Addition Stories', 'Subtraction Stories'],
+    topics: ['Addition Stories', 'Subtraction Stories', 'Times Stories', 'Mixed Stories'],
   },
   {
     id: 'skip-counting',
@@ -191,7 +185,7 @@ const activities = [
     emoji: '🐸',
     icon: <div className="text-6xl">🐸</div>,
     color: 'from-green-400 to-emerald-600',
-    topics: ['Count by 2s', 'Count by 5s', 'Count by 10s', 'Count by 100s'],
+    topics: ['Count by 2s', 'Count by 5s', 'Count by 10s', 'Mixed Practice'],
   },
   {
     id: 'odd-even',
@@ -200,7 +194,7 @@ const activities = [
     emoji: '🎲',
     icon: <div className="text-6xl">🎲</div>,
     color: 'from-red-400 to-orange-600',
-    topics: ['Odd Numbers', 'Even Numbers', 'Patterns', 'Sorting'],
+    topics: ['Odd or Even', 'Find the Odd One Out', 'Number Patterns', 'More Practice'],
   },
   {
     id: 'comparing',
@@ -209,7 +203,7 @@ const activities = [
     emoji: '⚖️',
     icon: <div className="text-6xl">⚖️</div>,
     color: 'from-blue-400 to-cyan-600',
-    topics: ['Greater Than', 'Less Than', 'Equal To', 'Ordering'],
+    topics: ['Compare to 10', 'Compare to 100', 'Ordering', '<, >, ='],
   },
   {
     id: 'estimation',
@@ -218,7 +212,7 @@ const activities = [
     emoji: '🤔',
     icon: <div className="text-6xl">🤔</div>,
     color: 'from-purple-400 to-indigo-600',
-    topics: ['Rounding', 'Nearest 10', 'Nearest 100', 'Smart Guessing'],
+    topics: ['Nearest 10', 'Nearest 100', 'Estimate Quantities', 'Round Totals'],
   },
   {
     id: 'data-graphs',
@@ -227,7 +221,7 @@ const activities = [
     emoji: '📊',
     icon: <div className="text-6xl">📊</div>,
     color: 'from-teal-400 to-cyan-600',
-    topics: ['Bar Graphs', 'Pictographs', 'Tally Marks', 'Data Tables'],
+    topics: ['Bar Graphs', 'Pictographs', 'Tally Marks', 'Read Data'],
   },
   {
     id: 'decimals',
@@ -236,68 +230,23 @@ const activities = [
     emoji: '🔢',
     icon: <div className="text-6xl">🔢</div>,
     color: 'from-pink-400 to-red-600',
-    topics: ['Tenths', 'Hundredths', 'Decimal Points', 'Simple Decimals'],
+    topics: ['Tenths', 'Hundredths', 'Compare Decimals', 'Add Decimals'],
   },
 ];
 
 export default function MathAdventuresPage() {
   const [activeActivity, setActiveActivity] = useState<ActivityType>(null);
-  const [userStats, setUserStats] = useState<UserStats>({
-    lessonsCompleted: 0,
-    quizzesPassed: 0,
-    starsEarned: 0,
-    totalScore: 0,
-    gamesPlayed: 0,
-    lastActivity: 'Never',
-  });
-
-  // Load stats from localStorage on mount
+  const userStats = useMathProgress();
+  const activityHeading = useRef<HTMLDivElement>(null);
+  const lastStart = useRef('');
   useEffect(() => {
-    const savedStats = localStorage.getItem('mathAdventuresStats');
-    if (savedStats) {
-      setUserStats(JSON.parse(savedStats));
-    }
-  }, []);
-
-  // Save stats to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('mathAdventuresStats', JSON.stringify(userStats));
-  }, [userStats]);
-
-  const handleActivityStart = (activityId: ActivityType) => {
+    if (activeActivity) activityHeading.current?.focus();
+    else if (lastStart.current) document.getElementById(lastStart.current)?.focus();
+  }, [activeActivity]);
+  const handleActivityStart = (activityId: ActivityType, trigger: HTMLButtonElement) => {
+    lastStart.current = trigger.id;
     setActiveActivity(activityId);
-    setUserStats(prev => ({
-      ...prev,
-      lastActivity: new Date().toLocaleDateString(),
-    }));
-  };
-
-  const handleQuizComplete = (score: number, questionsAnswered: number) => {
-    const stars = Math.floor(score / 10); // 10 points = 1 star
-    setUserStats(prev => ({
-      ...prev,
-      quizzesPassed: prev.quizzesPassed + 1,
-      starsEarned: prev.starsEarned + stars,
-      totalScore: prev.totalScore + score,
-    }));
-  };
-
-  const handleGameComplete = (score: number) => {
-    const stars = Math.floor(score / 10);
-    setUserStats(prev => ({
-      ...prev,
-      gamesPlayed: prev.gamesPlayed + 1,
-      starsEarned: prev.starsEarned + stars,
-      totalScore: prev.totalScore + score,
-    }));
-  };
-
-  const handleLessonComplete = () => {
-    setUserStats(prev => ({
-      ...prev,
-      lessonsCompleted: prev.lessonsCompleted + 1,
-      starsEarned: prev.starsEarned + 5, // 5 stars for completing a lesson
-    }));
+    updateMathProgress(current => ({ ...current, lastActivity: new Date().toLocaleDateString() }));
   };
 
   const renderActivity = () => {
@@ -380,7 +329,7 @@ export default function MathAdventuresPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 relative overflow-hidden">
+    <div id="main-content" className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 relative overflow-hidden">
       {/* Background decoration - Math Emojis Everywhere! */}
       <div className="absolute inset-0 opacity-10 overflow-hidden">
         <div className="absolute top-10 left-10 text-8xl animate-bounce">🔢</div>
@@ -412,6 +361,7 @@ export default function MathAdventuresPage() {
           </Link>
         </div>
 
+        <div className="mb-8 flex justify-center"><FeedbackSoundControl /></div>
         {/* Page Title */}
         <motion.div
           initial={{ opacity: 0, y: -30 }}
@@ -420,7 +370,7 @@ export default function MathAdventuresPage() {
           className="text-center mb-12"
         >
           <motion.div
-            className="flex items-center justify-center gap-4 mb-4"
+            className="flex flex-wrap items-center justify-center gap-2 md:gap-4 mb-4"
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
@@ -479,8 +429,7 @@ export default function MathAdventuresPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.08, duration: 0.5 }}
                   whileHover={{ scale: 1.05, y: -8 }}
-                  className="relative group cursor-pointer"
-                  onClick={() => handleActivityStart(activity.id as ActivityType)}
+                  className="relative group"
                 >
                   <div
                     className={`bg-gradient-to-br ${activity.color} rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden min-h-[320px] flex flex-col`}
@@ -492,19 +441,19 @@ export default function MathAdventuresPage() {
                     </div>
 
                     {/* Content */}
-                    <div className="relative z-10 flex-1 flex flex-col">
+                    <div className="relative z-10 flex-1 flex flex-col bg-white/90 rounded-2xl p-3">
                       {/* Emoji Badge */}
                       <div className="text-6xl mb-4 text-center filter drop-shadow-lg">
                         {activity.emoji}
                       </div>
 
                       {/* Title */}
-                      <h3 className="text-2xl font-bold text-white mb-2 baloo text-center">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2 baloo text-center">
                         {activity.title}
                       </h3>
 
                       {/* Description */}
-                      <p className="text-white/90 text-center mb-4 text-sm">
+                      <p className="text-gray-700 text-center mb-4 text-sm">
                         {activity.description}
                       </p>
 
@@ -513,7 +462,7 @@ export default function MathAdventuresPage() {
                         {activity.topics.map((topic, idx) => (
                           <span
                             key={idx}
-                            className="bg-white/30 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full font-semibold"
+                            className="bg-white text-gray-800 text-xs px-3 py-1 rounded-full font-semibold"
                           >
                             {topic}
                           </span>
@@ -521,7 +470,7 @@ export default function MathAdventuresPage() {
                       </div>
 
                       {/* Start Button */}
-                      <button className="w-full bg-white text-gray-800 font-bold py-3 px-6 rounded-full hover:bg-yellow-300 transition-colors duration-300 transform hover:scale-105 mt-auto">
+                      <button id={`start-math-${activity.id}`} aria-label={`Start ${activity.title}`} onClick={event => handleActivityStart(activity.id as ActivityType, event.currentTarget)} className="w-full bg-white text-gray-800 font-bold py-3 px-6 rounded-full hover:bg-yellow-300 transition-colors duration-300 transform hover:scale-105 mt-auto">
                         Start Learning! 🚀
                       </button>
                     </div>
@@ -535,34 +484,34 @@ export default function MathAdventuresPage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.8 }}
-              className="bg-gradient-to-r from-orange-400 to-pink-500 rounded-3xl p-8 text-center text-white shadow-2xl max-w-4xl mx-auto mb-12"
+              className="bg-gradient-to-r from-orange-400 to-pink-500 rounded-3xl p-4 md:p-8 text-center text-gray-950 shadow-2xl max-w-4xl mx-auto mb-12"
             >
               <h3 className="text-4xl font-bold mb-4 baloo">Your Math Journey 🚀</h3>
               <p className="text-xl mb-6">
                 Practice every day and become a math superstar!
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                <div className="bg-white/20 backdrop-blur rounded-2xl p-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
+                <div className="bg-white/20 backdrop-blur rounded-2xl p-3 md:p-6 min-w-0 break-words">
                   <div className="text-5xl font-bold">{userStats.lessonsCompleted}</div>
                   <div className="text-sm mt-2">Lessons Completed</div>
                 </div>
-                <div className="bg-white/20 backdrop-blur rounded-2xl p-6">
+                <div className="bg-white/20 backdrop-blur rounded-2xl p-3 md:p-6 min-w-0 break-words">
                   <div className="text-5xl font-bold">{userStats.quizzesPassed}</div>
-                  <div className="text-sm mt-2">Quizzes Passed</div>
+                  <div className="text-sm mt-2">Quizzes Finished</div>
                 </div>
-                <div className="bg-white/20 backdrop-blur rounded-2xl p-6">
+                <div className="bg-white/20 backdrop-blur rounded-2xl p-3 md:p-6 min-w-0 break-words">
                   <div className="text-5xl font-bold">{userStats.starsEarned}</div>
                   <div className="text-sm mt-2">Stars Earned ⭐</div>
                 </div>
-                <div className="bg-white/20 backdrop-blur rounded-2xl p-6">
+                <div className="bg-white/20 backdrop-blur rounded-2xl p-3 md:p-6 min-w-0 break-words">
                   <div className="text-5xl font-bold">{userStats.totalScore}</div>
                   <div className="text-sm mt-2">Total Score</div>
                 </div>
-                <div className="bg-white/20 backdrop-blur rounded-2xl p-6">
+                <div className="bg-white/20 backdrop-blur rounded-2xl p-3 md:p-6 min-w-0 break-words">
                   <div className="text-5xl font-bold">{userStats.gamesPlayed}</div>
-                  <div className="text-sm mt-2">Games Played</div>
+                  <div className="text-sm mt-2">Number Rounds Solved</div>
                 </div>
-                <div className="bg-white/20 backdrop-blur rounded-2xl p-6">
+                <div className="bg-white/20 backdrop-blur rounded-2xl p-3 md:p-6 min-w-0 break-words">
                   <div className="text-lg font-bold mt-2">{userStats.lastActivity}</div>
                   <div className="text-sm mt-2">Last Activity</div>
                 </div>
@@ -593,7 +542,7 @@ export default function MathAdventuresPage() {
             className="max-w-6xl mx-auto"
           >
             {/* Back Button */}
-            <div className="flex justify-between items-center mb-6">
+            <div ref={activityHeading} tabIndex={-1} aria-label="Selected math activity" className="flex justify-between items-center mb-6">
               <button
                 onClick={() => setActiveActivity(null)}
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-full flex items-center gap-2 transition-all"

@@ -1,7 +1,10 @@
 'use client';
 
+import { isExactWholeNumberAnswer } from '@/lib/math-activities';
+
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type MoneyLevel = 'coins' | 'dollars' | 'counting-money' | 'making-change';
@@ -15,12 +18,17 @@ interface Coin {
 export default function MoneyMath() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<MoneyLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [coins, setCoins] = useState<Coin[]>([]);
   const [totalValue, setTotalValue] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [showFeedback, setShowFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const answerInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!showFeedback) answerInput.current?.focus();
+  }, [showFeedback]);
   const [lives, setLives] = useState(5);
 
   const levels = [
@@ -71,7 +79,7 @@ export default function MoneyMath() {
   };
 
   const generateChangeQuestion = () => {
-    const itemCost = (Math.floor(Math.random() * 20) + 5) * 5; // $0.25 to $1.00 in 5¢ increments
+    const itemCost = (Math.floor(Math.random() * 16) + 5) * 5; // $0.25 to $1.00 in 5¢ increments
     const amountPaid = 100; // Always pay with $1
     const change = amountPaid - itemCost;
     setTotalValue(change);
@@ -101,9 +109,9 @@ export default function MoneyMath() {
   };
 
   const handleSubmit = () => {
-    if (userAnswer === '') return;
+    if (userAnswer === '' || showFeedback) return;
 
-    const isCorrect = parseInt(userAnswer) === totalValue;
+    const isCorrect = isExactWholeNumberAnswer(userAnswer, totalValue);
     setShowFeedback(isCorrect ? 'correct' : 'incorrect');
 
     if (isCorrect) {
@@ -111,7 +119,7 @@ export default function MoneyMath() {
       setScore(score + 20);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setUserAnswer('');
         setShowFeedback(null);
@@ -121,11 +129,11 @@ export default function MoneyMath() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setUserAnswer('');
           setShowFeedback(null);
         }, 1500);
@@ -149,6 +157,7 @@ export default function MoneyMath() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -171,7 +180,7 @@ export default function MoneyMath() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🎊</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Money Master!</h2>
         <p className="text-2xl text-gray-600 mb-6">You counted {questionsAnswered} money problems correctly!</p>
@@ -185,8 +194,8 @@ export default function MoneyMath() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-green-600">Score: {score}</div>
           <div className="text-2xl font-bold text-emerald-600">Counted: {questionsAnswered}</div>
         </div>
@@ -198,7 +207,7 @@ export default function MoneyMath() {
       </div>
 
       {coins.length > 0 && (
-        <motion.div key={totalValue} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl p-12 shadow-2xl">
+        <motion.div key={totalValue} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
           <div className="text-center space-y-8">
             <h3 className="text-3xl font-bold text-gray-800">
               {level === 'coins' && 'How much is this coin worth?'}
@@ -243,10 +252,10 @@ export default function MoneyMath() {
                 {level === 'dollars' ? 'Value in cents?' : 'Total value in cents?'}
               </p>
               <input
-                type="number"
+                ref={answerInput} type="number" aria-label="Your answer" disabled={showFeedback !== null}
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                 className="w-48 text-5xl text-center font-bold border-4 border-green-500 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-green-300"
                 placeholder="?"
                 autoFocus
@@ -256,14 +265,14 @@ export default function MoneyMath() {
 
             <button
               onClick={handleSubmit}
-              disabled={userAnswer === ''}
+              disabled={userAnswer === '' || showFeedback !== null}
               className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-4 px-12 rounded-full text-2xl hover:scale-105 transition-transform disabled:opacity-50"
             >
               Check Answer! ✓
             </button>
 
             {showFeedback && (
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
                 {showFeedback === 'correct' ? '✅ Correct!' : `❌ It\'s ${totalValue}¢!`}
               </motion.div>
             )}

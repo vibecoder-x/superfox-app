@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaStar, FaTrophy, FaRedo, FaBolt, FaHeart } from 'react-icons/fa';
-import Image from 'next/image';
+import { motion, useReducedMotion } from 'framer-motion';
+import { FaTimes, FaTrophy, FaRedo, FaBolt, FaHeart } from 'react-icons/fa';
+import ActivityDialog from '@/components/ActivityDialog';
 
 interface GameObject {
   x: number;
@@ -64,6 +64,12 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
   const [lives, setLives] = useState(3);
   const [speed, setSpeed] = useState(4);
   const [isPowerUp, setIsPowerUp] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const scoreRef = useRef(0);
+  const speedRef = useRef(4);
+  const livesRef = useRef(3);
+  const powerUpRef = useRef(false);
+  const powerUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Game state refs
   const gameLoopRef = useRef<number | undefined>(undefined);
@@ -92,6 +98,11 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
 
   // Initialize game
   const initGame = useCallback(() => {
+    if (powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
+    scoreRef.current = 0;
+    speedRef.current = 4;
+    livesRef.current = 3;
+    powerUpRef.current = false;
     playerRef.current = {
       x: 100,
       y: 300,
@@ -117,18 +128,17 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
     }
   }, [gameState]);
 
-  // Handle keyboard input
+  // Pause when the tab is hidden and release timers when the dialog closes.
   useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'ArrowUp') {
-        e.preventDefault();
-        jump();
-      }
+    const handleVisibility = () => {
+      if (document.hidden) setGameState(state => state === 'playing' ? 'paused' : state);
     };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [jump]);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
+    };
+  }, []);
 
   // Spawn objects
   const spawnObject = useCallback(() => {
@@ -184,10 +194,17 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
-    let lastSpawnTime = 0;
+    let lastSpawnTime = performance.now();
+    let lastSpeedTime = performance.now();
+    let previousTime = performance.now();
     let frameCount = 0;
+    canvas.focus();
 
-    const gameLoop = () => {
+    const gameLoop = (time: number) => {
+      const frameScale = Math.min((time - previousTime) / (1000 / 60), 2);
+      previousTime = time;
+      const speed = speedRef.current;
+      const isPowerUp = powerUpRef.current;
       frameCount++;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -211,8 +228,8 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
 
       // Update player
       const player = playerRef.current;
-      player.velocityY += player.gravity;
-      player.y += player.velocityY;
+      player.velocityY += player.gravity * frameScale;
+      player.y += player.velocityY * frameScale;
 
       // Ground collision
       if (player.y + player.height >= groundY) {
@@ -238,7 +255,7 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
       // Draw Superfox image
       if (foxImageRef.current) {
         // Add slight bounce animation
-        const bounceOffset = Math.sin(frameCount * 0.2) * 3;
+        const bounceOffset = reduceMotion ? 0 : Math.sin(frameCount * 0.2) * 3;
 
         if (isPowerUp) {
           // Add golden tint filter for power-up
@@ -261,14 +278,14 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
       ctx.restore();
 
       // Spawn objects
-      if (Date.now() - lastSpawnTime > 1500 - speed * 50) {
+      if (time - lastSpawnTime > 1500 - speed * 50) {
         spawnObject();
-        lastSpawnTime = Date.now();
+        lastSpawnTime = time;
       }
 
       // Update and draw objects
       objectsRef.current = objectsRef.current.filter((obj) => {
-        obj.x -= speed;
+        obj.x -= speed * frameScale;
 
         // Draw object based on mode
         const mode = selectedMode ? GAME_MODES[selectedMode] : GAME_MODES.forest;
@@ -309,22 +326,26 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
         if (checkCollision(player, obj)) {
           if (obj.type === 'obstacle') {
             if (!isPowerUp) {
-              setLives(prev => {
-                const newLives = prev - 1;
-                if (newLives <= 0) {
-                  setGameState('gameover');
-                  setHighScore(prev => Math.max(prev, score));
-                }
-                return newLives;
-              });
+              livesRef.current = Math.max(0, livesRef.current - 1);
+              setLives(livesRef.current);
+              if (livesRef.current === 0) {
+                setGameState('gameover');
+                setHighScore(previous => Math.max(previous, scoreRef.current));
+              }
             }
             return false;
           } else if (obj.type === 'coin') {
-            setScore(prev => prev + 10);
+            scoreRef.current += 10;
+            setScore(scoreRef.current);
             return false;
           } else if (obj.type === 'powerup') {
             setIsPowerUp(true);
-            setTimeout(() => setIsPowerUp(false), 5000);
+            powerUpRef.current = true;
+            if (powerUpTimerRef.current) clearTimeout(powerUpTimerRef.current);
+            powerUpTimerRef.current = setTimeout(() => {
+              powerUpRef.current = false;
+              setIsPowerUp(false);
+            }, 5000);
             return false;
           }
         }
@@ -333,21 +354,23 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
       });
 
       // Increase speed gradually
-      if (frameCount % 300 === 0) {
-        setSpeed(prev => Math.min(prev + 0.5, 12));
+      if (time - lastSpeedTime >= 5000) {
+        speedRef.current = Math.min(speedRef.current + 0.5, 12);
+        setSpeed(speedRef.current);
+        lastSpeedTime = time;
       }
 
       gameLoopRef.current = requestAnimationFrame(gameLoop);
     };
 
-    gameLoop();
+    gameLoopRef.current = requestAnimationFrame(gameLoop);
 
     return () => {
       if (gameLoopRef.current) {
         cancelAnimationFrame(gameLoopRef.current);
       }
     };
-  }, [gameState, speed, isPowerUp, score, groundY, spawnObject, checkCollision]);
+  }, [gameState, selectedMode, reduceMotion, groundY, spawnObject, checkCollision]);
 
   // Start game
   const startGame = (mode: GameMode) => {
@@ -368,10 +391,9 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+    <ActivityDialog
+      label="Superfox Runner game"
+      onClose={onClose}
       className="fixed inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 z-50 flex items-center justify-center p-4 overflow-hidden"
     >
       {/* Animated Background Stars */}
@@ -381,17 +403,17 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
             key={i}
             className="absolute text-yellow-200 text-2xl"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: `${(i * 37) % 100}%`,
+              top: `${(i * 61) % 100}%`,
             }}
-            animate={{
+            animate={reduceMotion ? { opacity: 0.6 } : {
               opacity: [0.2, 1, 0.2],
               scale: [1, 1.5, 1],
             }}
             transition={{
-              duration: 2 + Math.random() * 2,
+              duration: 2 + i % 3,
               repeat: Infinity,
-              delay: Math.random() * 2,
+              delay: (i % 5) / 3,
             }}
           >
             ✨
@@ -403,7 +425,7 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full overflow-hidden flex flex-col relative z-10"
+        className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[92dvh] overflow-y-auto flex flex-col relative z-10"
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-4 flex items-center justify-between text-white">
@@ -415,6 +437,7 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
             </div>
           </div>
           <button
+            aria-label="Close Superfox Runner"
             onClick={onClose}
             className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors"
           >
@@ -424,7 +447,7 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
 
         {/* Game Stats */}
         {gameState !== 'menu' && gameState !== 'modeSelect' && (
-          <div className="bg-gradient-to-r from-yellow-100 to-orange-100 p-4 flex justify-between items-center">
+          <div className="bg-gradient-to-r from-yellow-100 to-orange-100 p-4 flex flex-wrap gap-3 justify-between items-center">
             <div className="flex gap-6">
               <div className="text-center">
                 <p className="text-sm text-gray-600 font-semibold">Score</p>
@@ -455,7 +478,7 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
               ))}
               {isPowerUp && (
                 <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
+                  animate={reduceMotion ? {} : { scale: [1, 1.2, 1] }}
                   transition={{ duration: 0.5, repeat: Infinity }}
                 >
                   <FaBolt className="text-3xl text-yellow-500" />
@@ -470,7 +493,7 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
           {gameState === 'menu' ? (
             <div className="text-center max-w-2xl">
               <motion.div
-                animate={{ y: [0, -10, 0] }}
+                animate={reduceMotion ? {} : { y: [0, -10, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
                 className="text-9xl mb-8"
               >
@@ -614,14 +637,30 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
               </motion.button>
             </div>
           ) : (
-            <div className="relative">
+            <div className="relative w-full">
               <canvas
                 ref={canvasRef}
                 width={800}
                 height={400}
                 onClick={jump}
-                className="border-4 border-orange-500 rounded-2xl shadow-2xl cursor-pointer bg-white"
+                tabIndex={0}
+                aria-label="Runner game. Press Space or Up Arrow to jump. Press P to pause."
+                onKeyDown={(event) => {
+                  if (event.code === 'Space' || event.code === 'ArrowUp') {
+                    event.preventDefault();
+                    jump();
+                  } else if (event.code === 'KeyP') {
+                    event.preventDefault();
+                    setGameState(state => state === 'playing' ? 'paused' : 'playing');
+                  }
+                }}
+                className="border-4 border-orange-500 rounded-2xl shadow-2xl cursor-pointer bg-white w-full h-auto"
               />
+              <div className="flex flex-wrap justify-center gap-3 mt-4">
+                <button onClick={jump} disabled={gameState !== 'playing'} className="bg-orange-700 text-white font-bold px-6 py-3 rounded-full disabled:opacity-50">Jump</button>
+                <button onClick={() => setGameState(state => state === 'playing' ? 'paused' : 'playing')} className="bg-purple-700 text-white font-bold px-6 py-3 rounded-full">{gameState === 'paused' ? 'Resume' : 'Pause'}</button>
+              </div>
+              {gameState === 'paused' && <p role="status" className="text-center text-purple-800 font-bold mt-3">Paused. Ready when you are!</p>}
               <div className="text-center mt-4 text-gray-600">
                 <p className="text-sm">Press SPACE or click to jump!</p>
               </div>
@@ -629,6 +668,6 @@ export default function SuperfoxRunnerGame({ onClose }: SuperfoxRunnerGameProps)
           )}
         </div>
       </motion.div>
-    </motion.div>
+    </ActivityDialog>
   );
 }

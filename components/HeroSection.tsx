@@ -1,42 +1,31 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import Image from 'next/image';
 import { FaRocket, FaBook } from 'react-icons/fa';
-import { useState, useEffect } from 'react';
+
+// Stable decorative positions keep the server and first client render identical.
+const particles = Array.from({ length: 20 }, (_, index) => ({
+  width: 5 + (index * 7 % 10),
+  height: 5 + (index * 11 % 10),
+  left: index * 37 % 100,
+  top: index * 23 % 100,
+  x: index * 13 % 20 - 10,
+  duration: 2 + (index % 4),
+}));
+const stars = Array.from({ length: 5 }, (_, index) => ({
+  left: 10 + (index * 37 % 80),
+  top: 10 + (index * 23 % 80),
+  duration: 2 + (index % 3),
+}));
 
 export default function HeroSection() {
-  const [isClient, setIsClient] = useState(false);
-  const [particles, setParticles] = useState<any[]>([]);
-  const [stars, setStars] = useState<any[]>([]);
-
-  useEffect(() => {
-    // Generate random values only on client side
-    setIsClient(true);
-    setParticles(
-      [...Array(20)].map(() => ({
-        width: Math.random() * 10 + 5,
-        height: Math.random() * 10 + 5,
-        left: Math.random() * 100,
-        top: Math.random() * 100,
-        x: Math.random() * 20 - 10,
-        duration: Math.random() * 3 + 2,
-      }))
-    );
-    setStars(
-      [...Array(5)].map(() => ({
-        left: Math.random() * 100,
-        top: Math.random() * 100,
-        duration: Math.random() * 2 + 2,
-      }))
-    );
-  }, []);
+  const reduceMotion = useReducedMotion();
 
   return (
-    <section className="relative min-h-screen bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 overflow-hidden">
+    <section id="home" aria-labelledby="welcome-title" className="relative min-h-screen bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 overflow-hidden">
       {/* Floating particles background */}
-      {isClient && (
-        <div className="particles">
+        <div className="particles" aria-hidden="true">
           {particles.map((particle, i) => (
             <motion.div
               key={i}
@@ -47,7 +36,7 @@ export default function HeroSection() {
                 left: particle.left + '%',
                 top: particle.top + '%',
               }}
-              animate={{
+              animate={reduceMotion ? undefined : {
                 y: [0, -30, 0],
                 x: [0, particle.x, 0],
                 opacity: [0.3, 0.8, 0.3],
@@ -60,7 +49,6 @@ export default function HeroSection() {
             />
           ))}
         </div>
-      )}
 
       <div className="container mx-auto px-4 py-20 relative z-10">
         <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -72,17 +60,18 @@ export default function HeroSection() {
             className="text-center md:text-left"
           >
             <motion.h1
-              className="text-5xl md:text-7xl font-extrabold text-white mb-6 baloo"
+              id="welcome-title"
+              className="text-5xl md:text-7xl font-extrabold text-slate-950 mb-6 baloo"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.8 }}
             >
               Learn, Play, and Grow with{' '}
-              <span className="text-yellow-300">Superfox!</span>
+              <span className="text-yellow-300 bg-slate-900/90 rounded-xl px-2">Superfox!</span>
             </motion.h1>
 
             <motion.p
-              className="text-xl md:text-2xl text-white mb-8 font-light"
+              className="text-xl md:text-2xl text-slate-950 mb-8"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.8 }}
@@ -97,12 +86,12 @@ export default function HeroSection() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
             >
-              <button className="bg-white text-superfox-orange font-bold py-4 px-8 rounded-full text-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
-                <FaRocket /> Start Learning
-              </button>
-              <button className="bg-superfox-orange text-white font-bold py-4 px-8 rounded-full text-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
-                <FaBook /> Read Stories
-              </button>
+              <a href="#learning" className="bg-white text-orange-800 font-bold py-4 px-8 rounded-full text-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
+                <FaRocket aria-hidden="true" /> Start Learning
+              </a>
+              <a href="#stories" className="bg-superfox-orange text-slate-950 font-bold py-4 px-8 rounded-full text-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
+                <FaBook aria-hidden="true" /> Read Stories
+              </a>
             </motion.div>
           </motion.div>
 
@@ -114,7 +103,7 @@ export default function HeroSection() {
             className="relative"
           >
             <motion.div
-              animate={{
+              animate={reduceMotion ? undefined : {
                 y: [0, -20, 0],
               }}
               transition={{
@@ -136,15 +125,16 @@ export default function HeroSection() {
             </motion.div>
 
             {/* Floating stars around Superfox */}
-            {isClient && stars.map((star, i) => (
+            {stars.map((star, i) => (
               <motion.div
                 key={i}
+                aria-hidden="true"
                 className="absolute text-4xl"
                 style={{
                   left: `${star.left}%`,
                   top: `${star.top}%`,
                 }}
-                animate={{
+                animate={reduceMotion ? undefined : {
                   rotate: [0, 360],
                   scale: [1, 1.5, 1],
                   opacity: [0.5, 1, 0.5],
@@ -163,7 +153,7 @@ export default function HeroSection() {
       </div>
 
       {/* Wave divider */}
-      <div className="absolute bottom-0 left-0 w-full">
+      <div aria-hidden="true" className="absolute bottom-0 left-0 w-full">
         <svg
           viewBox="0 0 1440 120"
           fill="none"

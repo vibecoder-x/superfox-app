@@ -94,3 +94,22 @@ body {
   border-radius: 50%;
   animation: float 6s ease-in-out infinite;
 }
+
+html { scroll-padding-top: 6rem; }
+* { box-sizing: border-box; }
+button, a, input, select { touch-action: manipulation; }
+button { min-height: 44px; }
+:focus-visible { outline: 3px solid #153e75; outline-offset: 4px; }
+button:disabled { cursor: not-allowed; }
+.skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 1000; padding: .75rem 1rem; border-radius: 1rem; background: white; color: #153e75; font-weight: 700; }
+.skip-link:focus { top: 1rem; }
+dialog { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+@media (max-width: 640px) {
+  h1.text-5xl, h1.text-6xl, h1.text-7xl { font-size: 2.5rem; }
+  h2.text-5xl, h2.text-6xl { font-size: 2.2rem; }
+  .text-8xl { font-size: 4rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  .card-hover:hover { transform: none; }
+}

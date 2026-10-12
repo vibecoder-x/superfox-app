@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { decimalComparison } from '@/lib/math-activities';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type DecimalLevel = 'tenths' | 'hundredths' | 'compare-decimals' | 'decimal-addition';
@@ -9,6 +11,7 @@ type DecimalLevel = 'tenths' | 'hundredths' | 'compare-decimals' | 'decimal-addi
 export default function Decimals() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<DecimalLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [decimal, setDecimal] = useState(0);
   const [decimal2, setDecimal2] = useState(0);
   const [options, setOptions] = useState<string[]>([]);
@@ -55,15 +58,9 @@ export default function Decimals() {
       setDecimal(dec1);
       setDecimal2(dec2);
 
-      if (dec1 > dec2) {
-        setCorrectAnswer(`${dec1.toFixed(1)} is greater`);
-      } else if (dec2 > dec1) {
-        setCorrectAnswer(`${dec2.toFixed(1)} is greater`);
-      } else {
-        setCorrectAnswer('Equal');
-      }
-
-      setOptions([`${dec1.toFixed(1)} is greater`, `${dec2.toFixed(1)} is greater`, 'Equal'].slice(0, dec1 === dec2 ? 1 : 2).sort(() => Math.random() - 0.5));
+      const question = decimalComparison(dec1, dec2);
+      setCorrectAnswer(question.answer);
+      setOptions(question.options);
     } else if (lvl === 'decimal-addition') {
       const dec1 = (Math.floor(Math.random() * 20) + 1) / 10; // 0.1-2.0
       const dec2 = (Math.floor(Math.random() * 20) + 1) / 10;
@@ -101,7 +98,7 @@ export default function Decimals() {
       setScore(score + 25);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setShowFeedback(null);
       }, 1500);
@@ -110,19 +107,20 @@ export default function Decimals() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setShowFeedback(null);
         }, 1500);
       }
     }
   };
 
-  const renderNumberLine = (value: number, max: number = 1) => {
-    const segments = max === 1 ? 10 : 100;
+  const renderNumberLine = (value: number, hundredths = false) => {
+    const segments = hundredths ? 100 : 10;
+    const precision = hundredths ? 2 : 1;
     const segmentWidth = 100 / segments;
 
     return (
@@ -139,9 +137,9 @@ export default function Decimals() {
               style={{ left: `${i * segmentWidth}%` }}
             >
               <div className="w-1 h-6 bg-gray-600 -translate-x-1/2"></div>
-              {(max === 1 && i % 2 === 0) || (max > 1 && i % 10 === 0) ? (
+              {(hundredths ? i % 10 === 0 : i % 2 === 0) ? (
                 <div className="absolute top-8 -translate-x-1/2 text-xs font-bold text-gray-600">
-                  {(i / segments * max).toFixed(max === 1 ? 1 : 2)}
+                  {(i / segments).toFixed(precision)}
                 </div>
               ) : null}
             </div>
@@ -150,13 +148,13 @@ export default function Decimals() {
           {/* Pointer */}
           <motion.div
             initial={{ left: 0 }}
-            animate={{ left: `${(value / max) * 100}%` }}
+            animate={{ left: `${value * 100}%` }}
             transition={{ duration: 0.8 }}
             className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
           >
             <div className="text-5xl">👆</div>
             <div className="absolute top-12 -translate-x-1/2 left-1/2 bg-pink-500 text-white px-3 py-1 rounded-full font-bold">
-              {value.toFixed(max === 1 ? 1 : 2)}
+              {value.toFixed(precision)}
             </div>
           </motion.div>
         </div>
@@ -180,6 +178,7 @@ export default function Decimals() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -202,7 +201,7 @@ export default function Decimals() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🎯</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Decimal Expert!</h2>
         <p className="text-2xl text-gray-600 mb-6">You solved {questionsAnswered} decimal problems!</p>
@@ -216,8 +215,8 @@ export default function Decimals() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-pink-600">Score: {score}</div>
           <div className="text-2xl font-bold text-red-600">Solved: {questionsAnswered}</div>
         </div>
@@ -228,7 +227,7 @@ export default function Decimals() {
         </div>
       </div>
 
-      <motion.div key={`${decimal}-${decimal2}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-pink-100 to-red-100 rounded-3xl p-12 shadow-2xl">
+      <motion.div key={`${decimal}-${decimal2}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-pink-100 to-red-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
         <div className="text-center space-y-8">
           <h3 className="text-3xl font-bold text-gray-800">
             {level === 'tenths' && 'What decimal is shown?'}
@@ -238,7 +237,7 @@ export default function Decimals() {
           </h3>
 
           {level === 'decimal-addition' ? (
-            <div className="flex items-center justify-center gap-8 text-6xl font-bold text-pink-600">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-6xl font-bold text-pink-600">
               <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
                 {decimal.toFixed(1)}
               </motion.div>
@@ -251,7 +250,7 @@ export default function Decimals() {
             </div>
           ) : level === 'compare-decimals' ? (
             <div className="space-y-6">
-              <div className="flex items-center justify-center gap-8">
+              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8">
                 <motion.div
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
@@ -270,10 +269,10 @@ export default function Decimals() {
               </div>
             </div>
           ) : (
-            renderNumberLine(decimal, level === 'tenths' ? 1 : 1)
+            renderNumberLine(decimal, level === 'hundredths')
           )}
 
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
             {options.map((option, index) => (
               <motion.button
                 key={option}
@@ -293,7 +292,7 @@ export default function Decimals() {
           </div>
 
           {showFeedback && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
               {showFeedback === 'correct' ? '✅ Perfect!' : `❌ It\'s ${correctAnswer}!`}
             </motion.div>
           )}

@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type GraphLevel = 'bar-graphs' | 'pictographs' | 'tally-marks' | 'data-reading';
@@ -17,6 +18,7 @@ interface DataSet {
 export default function GraphsData() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<GraphLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [dataSet, setDataSet] = useState<DataSet | null>(null);
   const [options, setOptions] = useState<string[]>([]);
   const [correctAnswer, setCorrectAnswer] = useState('');
@@ -41,13 +43,14 @@ export default function GraphsData() {
     ];
 
     const theme = themes[Math.floor(Math.random() * themes.length)];
-    const values = theme.labels.map(() => Math.floor(Math.random() * 15) + 5);
+    const start = Math.floor(Math.random() * 10) + 5;
+    const values = [start, start + 2, start + 4].sort(() => Math.random() - 0.5);
 
     const questionTypes = [
       { q: `How many ${theme.labels[0]} are there?`, a: values[0] },
       { q: `Which has the most?`, a: theme.labels[values.indexOf(Math.max(...values))] },
       { q: `How many total items are there?`, a: values.reduce((a, b) => a + b, 0) },
-      { q: `How many more ${theme.labels[0]} than ${theme.labels[1]}?`, a: Math.abs(values[0] - values[1]) },
+      { q: `What is the difference between ${theme.labels[0]} and ${theme.labels[1]}?`, a: Math.abs(values[0] - values[1]) },
     ];
 
     const selectedQuestion = questionTypes[Math.floor(Math.random() * questionTypes.length)];
@@ -95,7 +98,7 @@ export default function GraphsData() {
       setScore(score + 20);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setShowFeedback(null);
       }, 1500);
@@ -104,11 +107,11 @@ export default function GraphsData() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setShowFeedback(null);
         }, 1500);
       }
@@ -131,6 +134,7 @@ export default function GraphsData() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -153,7 +157,7 @@ export default function GraphsData() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">📈</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Data Detective!</h2>
         <p className="text-2xl text-gray-600 mb-6">You read {questionsAnswered} graphs correctly!</p>
@@ -167,8 +171,8 @@ export default function GraphsData() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-teal-600">Score: {score}</div>
           <div className="text-2xl font-bold text-cyan-600">Read: {questionsAnswered}</div>
         </div>
@@ -180,25 +184,25 @@ export default function GraphsData() {
       </div>
 
       {dataSet && (
-        <motion.div key={dataSet.question} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-teal-100 to-cyan-100 rounded-3xl p-12 shadow-2xl">
+        <motion.div key={dataSet.question} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-teal-100 to-cyan-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
           <div className="text-center space-y-8">
             <h3 className="text-3xl font-bold text-gray-800">{dataSet.question}</h3>
 
             {/* Bar Graph or Pictograph */}
             {(level === 'bar-graphs' || level === 'pictographs' || level === 'data-reading') && (
-              <div className="bg-white rounded-2xl p-8 shadow-lg">
-                <div className="flex justify-around items-end h-80 border-b-4 border-l-4 border-gray-400 relative">
+              <div className="bg-white rounded-2xl p-4 sm:p-8 shadow-lg">
+                <div className="flex justify-around gap-2 items-end min-h-80 border-b-4 border-l-4 border-gray-400 relative">
                   {dataSet.labels.map((label, index) => (
-                    <div key={label} className="flex flex-col items-center gap-4">
+                    <div key={label} className="flex flex-col items-center gap-4 min-w-0 flex-1">
                       {level === 'pictographs' ? (
-                        <div className="flex flex-col-reverse gap-1 mb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 mb-4">
                           {[...Array(dataSet.values[index])].map((_, i) => (
                             <motion.div
                               key={i}
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: i * 0.1 }}
-                              className="text-3xl"
+                              className="text-2xl sm:text-3xl"
                             >
                               {dataSet.emojis[index]}
                             </motion.div>
@@ -207,9 +211,9 @@ export default function GraphsData() {
                       ) : (
                         <motion.div
                           initial={{ height: 0 }}
-                          animate={{ height: `${(dataSet.values[index] / 20) * 100}%` }}
+                          animate={{ height: dataSet.values[index] * 12 }}
                           transition={{ duration: 0.5, delay: index * 0.2 }}
-                          className={`w-24 bg-gradient-to-t ${index === 0 ? 'from-blue-400 to-blue-600' : index === 1 ? 'from-green-400 to-green-600' : 'from-orange-400 to-orange-600'} rounded-t-lg flex items-end justify-center pb-2`}
+                          className={`w-full max-w-24 bg-gradient-to-t ${index === 0 ? 'from-blue-400 to-blue-600' : index === 1 ? 'from-green-400 to-green-600' : 'from-orange-400 to-orange-600'} rounded-t-lg flex items-end justify-center pb-2`}
                         >
                           <span className="text-white font-bold text-xl">{dataSet.values[index]}</span>
                         </motion.div>
@@ -226,32 +230,34 @@ export default function GraphsData() {
 
             {/* Tally Marks */}
             {level === 'tally-marks' && (
-              <div className="bg-white rounded-2xl p-8 shadow-lg">
+              <div className="bg-white rounded-2xl p-4 sm:p-8 shadow-lg">
                 {dataSet.labels.map((label, index) => (
-                  <div key={label} className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 last:border-0">
+                  <div key={label} className="flex flex-wrap gap-4 items-center justify-between mb-6 pb-4 border-b border-gray-200 last:border-0">
                     <div className="flex items-center gap-4">
                       <span className="text-4xl">{dataSet.emojis[index]}</span>
                       <span className="text-xl font-bold text-gray-700">{label}</span>
                     </div>
-                    <div className="flex gap-2">
-                      {[...Array(dataSet.values[index])].map((_, i) => (
-                        <motion.span
-                          key={i}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: i * 0.05 }}
-                          className="text-3xl font-bold text-gray-800"
-                        >
-                          {i % 5 === 4 ? '🔴' : '|'}
-                        </motion.span>
-                      ))}
+                    <div role="img" aria-label={`${dataSet.values[index]} tally marks`} className="flex flex-wrap gap-2">
+                      {Array.from({ length: Math.ceil(dataSet.values[index] / 5) }, (_, group) => {
+                        const count = Math.min(5, dataSet.values[index] - group * 5);
+                        return <svg key={group} aria-hidden="true" width="44" height="40" viewBox="0 0 44 40">
+                          {Array.from({ length: Math.min(4, count) }, (_, stroke) => <line key={stroke} x1={8 + stroke * 8} y1="5" x2={8 + stroke * 8} y2="35" stroke="#1f2937" strokeWidth="3" />)}
+                          {count === 5 && <line x1="3" y1="34" x2="39" y2="6" stroke="#1f2937" strokeWidth="3" />}
+                        </svg>;
+                      })}
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <table className="sr-only">
+              <caption>Values shown in the graph</caption>
+              <thead><tr><th scope="col">Item</th><th scope="col">Count</th></tr></thead>
+              <tbody>{dataSet.labels.map((label, index) => <tr key={label}><th scope="row">{label}</th><td>{dataSet.values[index]}</td></tr>)}</tbody>
+            </table>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
               {options.map((option, index) => (
                 <motion.button
                   key={option}
@@ -271,7 +277,7 @@ export default function GraphsData() {
             </div>
 
             {showFeedback && (
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
                 {showFeedback === 'correct' ? '✅ Correct!' : `❌ It\'s ${correctAnswer}!`}
               </motion.div>
             )}

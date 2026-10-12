@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type OddEvenLevel = 'identify' | 'sort' | 'patterns' | 'mixed';
@@ -9,6 +10,7 @@ type OddEvenLevel = 'identify' | 'sort' | 'patterns' | 'mixed';
 export default function OddEvenNumbers() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<OddEvenLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [number, setNumber] = useState(0);
   const [options, setOptions] = useState<string[]>([]);
   const [correctAnswer, setCorrectAnswer] = useState('');
@@ -36,9 +38,7 @@ export default function OddEvenNumbers() {
     } else if (lvl === 'sort') {
       // Generate 3 numbers, ask which doesn't belong
       const isCurrentOdd = isOdd(num);
-      const similar1 = isCurrentOdd
-        ? (Math.floor(Math.random() * 25) * 2 + 1) // Another odd
-        : (Math.floor(Math.random() * 25) * 2); // Another even
+      const similar1 = num <= 48 ? num + 2 : num - 2;
       const different = isCurrentOdd
         ? (Math.floor(Math.random() * 25) * 2) // An even
         : (Math.floor(Math.random() * 25) * 2 + 1); // An odd
@@ -48,7 +48,6 @@ export default function OddEvenNumbers() {
     } else if (lvl === 'patterns') {
       // Show a pattern and ask what comes next
       const startNum = Math.floor(Math.random() * 10) + 1;
-      const isOddPattern = isOdd(startNum);
       const pattern = [startNum, startNum + 2, startNum + 4];
       const nextNum = startNum + 6;
 
@@ -83,7 +82,7 @@ export default function OddEvenNumbers() {
       setScore(score + 15);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setShowFeedback(null);
       }, 1500);
@@ -92,11 +91,11 @@ export default function OddEvenNumbers() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setShowFeedback(null);
         }, 1500);
       }
@@ -119,6 +118,7 @@ export default function OddEvenNumbers() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -129,7 +129,7 @@ export default function OddEvenNumbers() {
                   {lvl.id === 'identify' && 'Is this number odd or even?'}
                   {lvl.id === 'sort' && 'Find the number that doesn\'t belong!'}
                   {lvl.id === 'patterns' && 'Continue the pattern!'}
-                  {lvl.id === 'mixed' && 'All challenges combined!'}
+                  {lvl.id === 'mixed' && 'More odd and even practice!'}
                 </p>
               </div>
             </motion.div>
@@ -141,7 +141,7 @@ export default function OddEvenNumbers() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🎉</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Number Expert!</h2>
         <p className="text-2xl text-gray-600 mb-6">You identified {questionsAnswered} odd and even numbers!</p>
@@ -155,8 +155,8 @@ export default function OddEvenNumbers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-orange-600">Score: {score}</div>
           <div className="text-2xl font-bold text-red-600">Identified: {questionsAnswered}</div>
         </div>
@@ -167,7 +167,7 @@ export default function OddEvenNumbers() {
         </div>
       </div>
 
-      <motion.div key={number} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-orange-100 to-red-100 rounded-3xl p-12 shadow-2xl">
+      <motion.div key={number} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-orange-100 to-red-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
         <div className="text-center space-y-8">
           <h3 className="text-3xl font-bold text-gray-800">
             {level === 'identify' && 'Is this number odd or even?'}
@@ -178,7 +178,7 @@ export default function OddEvenNumbers() {
 
           {level === 'patterns' ? (
             <div className="space-y-6">
-              <div className="flex justify-center gap-4">
+              <div className="flex flex-wrap justify-center gap-4">
                 {[number, number + 2, number + 4].map((num, index) => (
                   <motion.div
                     key={index}
@@ -233,7 +233,7 @@ export default function OddEvenNumbers() {
             </div>
           )}
 
-          <div className={`grid ${options.length === 2 ? 'grid-cols-2' : 'grid-cols-3'} gap-4 max-w-2xl mx-auto`}>
+          <div className={`grid ${options.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3'} gap-4 max-w-2xl mx-auto`}>
             {options.map((option, index) => (
               <motion.button
                 key={option}
@@ -253,7 +253,7 @@ export default function OddEvenNumbers() {
           </div>
 
           {showFeedback && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
               {showFeedback === 'correct' ? '✅ Correct!' : `❌ It\'s ${correctAnswer}!`}
             </motion.div>
           )}

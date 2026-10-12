@@ -2,13 +2,13 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { FaFacebook, FaTwitter, FaInstagram, FaYoutube, FaEnvelope, FaHeart } from 'react-icons/fa';
+import { FaFacebook, FaTwitter, FaInstagram, FaYoutube, FaHeart } from 'react-icons/fa';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gradient-to-r from-superfox-blue to-superfox-purple text-white">
+    <footer className="bg-gradient-to-r from-superfox-blue to-superfox-purple text-slate-950">
       <div className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           {/* Logo and Description */}
@@ -22,7 +22,7 @@ export default function Footer() {
               />
             </div>
             <h3 className="text-2xl font-bold mb-2 baloo">Superfox.net</h3>
-            <p className="text-white/80">
+            <p>
               Making learning fun and exciting for kids everywhere!
             </p>
           </div>
@@ -32,27 +32,27 @@ export default function Footer() {
             <h4 className="text-xl font-bold mb-4 baloo">Quick Links</h4>
             <ul className="space-y-2">
               <li>
-                <a href="#home" className="text-white/80 hover:text-white transition-colors">
+                <a href="#home" className="inline-block min-h-12 py-3 underline hover:no-underline">
                   Home
                 </a>
               </li>
               <li>
-                <a href="#learning" className="text-white/80 hover:text-white transition-colors">
+                <a href="#learning" className="inline-block min-h-12 py-3 underline hover:no-underline">
                   Learning World
                 </a>
               </li>
               <li>
-                <a href="#stories" className="text-white/80 hover:text-white transition-colors">
+                <a href="#stories" className="inline-block min-h-12 py-3 underline hover:no-underline">
                   Stories
                 </a>
               </li>
               <li>
-                <a href="#games" className="text-white/80 hover:text-white transition-colors">
+                <a href="#games" className="inline-block min-h-12 py-3 underline hover:no-underline">
                   Games
                 </a>
               </li>
               <li>
-                <a href="#about" className="text-white/80 hover:text-white transition-colors">
+                <a href="#about" className="inline-block min-h-12 py-3 underline hover:no-underline">
                   About
                 </a>
               </li>
@@ -64,28 +64,28 @@ export default function Footer() {
             <h4 className="text-xl font-bold mb-4 baloo">For Parents</h4>
             <ul className="space-y-2">
               <li>
-                <a href="#parent-zone" className="text-white/80 hover:text-white transition-colors">
+                <a href="#parent" className="inline-block min-h-12 py-3 underline hover:no-underline">
                   Parent Zone
                 </a>
               </li>
               <li>
-                <a href="#safety" className="text-white/80 hover:text-white transition-colors">
+                <a href="#safety-privacy" className="inline-block min-h-12 py-3 underline hover:no-underline">
                   Safety & Privacy
                 </a>
               </li>
               <li>
-                <a href="#progress" className="text-white/80 hover:text-white transition-colors">
+                <a href="#progress" className="inline-block min-h-12 py-3 underline hover:no-underline">
                   Track Progress
                 </a>
               </li>
               <li>
-                <a href="#faq" className="text-white/80 hover:text-white transition-colors">
+                <a href="#faq" className="inline-block min-h-12 py-3 underline hover:no-underline">
                   FAQ
                 </a>
               </li>
               <li>
-                <a href="#support" className="text-white/80 hover:text-white transition-colors">
-                  Support
+                <a href="#support" className="inline-block min-h-12 py-3 underline hover:no-underline">
+                  Support status
                 </a>
               </li>
             </ul>
@@ -94,73 +94,41 @@ export default function Footer() {
           {/* Newsletter */}
           <div>
             <h4 className="text-xl font-bold mb-4 baloo">Stay Connected</h4>
-            <p className="text-white/80 mb-4">
-              Get updates on new stories and activities!
+            <p className="mb-4">
+              Newsletter — Coming Soon. Email signup is not available yet.
             </p>
-            <div className="flex gap-2 mb-4">
-              <input
-                type="email"
-                placeholder="Your email"
-                className="flex-1 px-4 py-2 rounded-full text-gray-800 focus:outline-none focus:ring-2 focus:ring-white"
-              />
-              <button className="bg-superfox-orange hover:bg-superfox-yellow text-white p-2 rounded-full transition-colors">
-                <FaEnvelope className="text-xl" />
-              </button>
-            </div>
 
             {/* Social Media */}
-            <div className="flex gap-4">
-              <motion.a
-                href="#"
-                whileHover={{ scale: 1.2, rotate: 5 }}
-                className="bg-white/20 hover:bg-white/30 p-3 rounded-full transition-colors"
-              >
-                <FaFacebook className="text-xl" />
-              </motion.a>
+            <div className="space-y-3">
               <motion.a
                 href="https://x.com/superfoxnet"
                 target="_blank"
                 rel="noopener noreferrer"
-                whileHover={{ scale: 1.2, rotate: 5 }}
-                className="bg-white/20 hover:bg-white/30 p-3 rounded-full transition-colors"
+                whileHover={{ scale: 1.03 }}
+                className="flex items-center gap-3 bg-white/90 hover:bg-white p-3 rounded-2xl transition-colors min-h-12"
               >
-                <FaTwitter className="text-xl" />
+                <FaTwitter aria-hidden="true" className="text-xl shrink-0" />
+                <span>Parents: Superfox on X <span className="text-sm">(opens a new tab)</span></span>
               </motion.a>
-              <motion.a
-                href="#"
-                whileHover={{ scale: 1.2, rotate: 5 }}
-                className="bg-white/20 hover:bg-white/30 p-3 rounded-full transition-colors"
-              >
-                <FaInstagram className="text-xl" />
-              </motion.a>
-              <motion.a
-                href="#"
-                whileHover={{ scale: 1.2, rotate: 5 }}
-                className="bg-white/20 hover:bg-white/30 p-3 rounded-full transition-colors"
-              >
-                <FaYoutube className="text-xl" />
-              </motion.a>
+              <p className="flex items-center gap-3"><FaFacebook aria-hidden="true" /> Facebook — Coming Soon</p>
+              <p className="flex items-center gap-3"><FaInstagram aria-hidden="true" /> Instagram — Coming Soon</p>
+              <p className="flex items-center gap-3"><FaYoutube aria-hidden="true" /> YouTube — Coming Soon</p>
             </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="border-t border-white/20 pt-8 text-center">
-          <p className="text-white/80 mb-2">
+          <p className="mb-2">
             © {currentYear} Superfox.net. All rights reserved. Made with{' '}
-            <FaHeart className="inline text-red-400" /> for curious minds.
+            <FaHeart aria-label="love" className="inline text-red-800" /> for curious minds.
           </p>
-          <div className="flex justify-center gap-6 text-sm text-white/60">
-            <a href="#privacy" className="hover:text-white transition-colors">
-              Privacy Policy
-            </a>
-            <a href="#terms" className="hover:text-white transition-colors">
-              Terms of Service
-            </a>
-            <a href="#cookies" className="hover:text-white transition-colors">
-              Cookie Policy
-            </a>
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm">
+            <span>Privacy Policy — Coming Soon</span>
+            <span>Terms of Service — Coming Soon</span>
+            <span>Cookie Policy — Coming Soon</span>
           </div>
+          <a href="#safety-privacy" className="inline-block min-h-12 py-3 underline mt-2">Read current safety &amp; privacy information</a>
         </div>
       </div>
     </footer>

@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { updateMathProgress } from '@/lib/math-progress';
 import { FaCheckCircle, FaArrowRight, FaLightbulb } from 'react-icons/fa';
 
 interface Lesson {
@@ -77,8 +78,15 @@ export default function MathTutor() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [showHint, setShowHint] = useState(false);
+  const lessonHeading = useRef<HTMLHeadingElement>(null);
+  const lastLesson = useRef<number | null>(null);
+  useEffect(() => {
+    if (selectedLesson) lessonHeading.current?.focus();
+    else if (lastLesson.current) document.getElementById(`tutor-lesson-${lastLesson.current}`)?.focus();
+  }, [selectedLesson, currentStep]);
 
   const handleLessonSelect = (lesson: Lesson) => {
+    lastLesson.current = lesson.id;
     setSelectedLesson(lesson);
     setCurrentStep(0);
     setShowHint(false);
@@ -91,7 +99,14 @@ export default function MathTutor() {
     }
   };
 
+  const handleBack = () => {
+    setSelectedLesson(null);
+    setCurrentStep(0);
+    setShowHint(false);
+  };
+
   const handleComplete = () => {
+    updateMathProgress(current => ({ ...current, lessonsCompleted: current.lessonsCompleted + 1, starsEarned: current.starsEarned + 5, lastActivity: new Date().toLocaleDateString() }));
     setSelectedLesson(null);
     setCurrentStep(0);
     setShowHint(false);
@@ -122,6 +137,7 @@ export default function MathTutor() {
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
               className="bg-white rounded-2xl p-6 shadow-lg cursor-pointer border-4 border-blue-200 hover:border-blue-400 transition-all"
+              id={`tutor-lesson-${lesson.id}`} role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); handleLessonSelect(lesson); } }}
               onClick={() => handleLessonSelect(lesson)}
             >
               <div className="flex items-center justify-between mb-3">
@@ -152,11 +168,11 @@ export default function MathTutor() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl p-8 shadow-2xl"
+          className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl p-4 md:p-8 shadow-2xl"
         >
           {/* Header */}
           <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-blue-700 baloo mb-2">
+            <h2 ref={lessonHeading} tabIndex={-1} className="text-4xl font-bold text-blue-700 baloo mb-2">
               {selectedLesson.title}
             </h2>
             <div className="flex justify-center gap-2 mb-4">
@@ -176,7 +192,7 @@ export default function MathTutor() {
             key={currentStep}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-white rounded-2xl p-8 mb-6 min-h-[300px] flex flex-col justify-center"
+            className="bg-white rounded-2xl p-4 md:p-8 mb-6 min-h-[300px] flex flex-col justify-center"
           >
             <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
               {selectedLesson.steps[currentStep].instruction}
@@ -213,9 +229,9 @@ export default function MathTutor() {
           </motion.div>
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between items-center">
+          <div className="flex flex-wrap justify-between items-center gap-3">
             <button
-              onClick={handleComplete}
+              onClick={handleBack}
               className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-full transition-all"
             >
               Back to Lessons

@@ -1,11 +1,29 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
+import { feedbackSoundEnabled, FEEDBACK_SOUND_EVENT } from '@/lib/audio-preference';
 
 export const useAudio = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackVersion = useRef(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
+    const versionRef = playbackVersion;
+    const stopDisabledSounds = () => {
+      if (feedbackSoundEnabled()) return;
+      versionRef.current++;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+      setIsPlaying(false);
+    };
+    window.addEventListener(FEEDBACK_SOUND_EVENT, stopDisabledSounds);
     return () => {
+      window.removeEventListener(FEEDBACK_SOUND_EVENT, stopDisabledSounds);
+      versionRef.current++;
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -13,7 +31,9 @@ export const useAudio = () => {
     };
   }, []);
 
-  const playAudio = useCallback((audioPath: string) => {
+  const playAudio = useCallback(async (audioPath: string): Promise<boolean> => {
+    if (!feedbackSoundEnabled()) return false;
+    const version = ++playbackVersion.current;
     try {
       // Stop current audio if playing
       if (audioRef.current) {
@@ -32,35 +52,39 @@ export const useAudio = () => {
       // Set volume
       audio.volume = 1.0;
 
-      // Play with better error handling
-      const playPromise = audio.play();
-
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            console.log('Audio playing successfully:', encodedPath);
-          })
-          .catch((error) => {
-            console.error('Error playing audio:', error.message, 'Path:', encodedPath);
-            // Retry once after a short delay
-            setTimeout(() => {
-              audio.play().catch(e => console.error('Retry failed:', e));
-            }, 100);
-          });
+      setAudioError(null);
+      audio.addEventListener('ended', () => {
+        if (audioRef.current === audio) setIsPlaying(false);
+      });
+      audio.addEventListener('error', () => {
+        if (audioRef.current === audio) {
+          setIsPlaying(false);
+          setAudioError('Audio is unavailable right now. You can keep learning without sound.');
+        }
+      });
+      await audio.play();
+      if (audioRef.current === audio) setIsPlaying(true);
+      return audioRef.current === audio;
+    } catch {
+      if (playbackVersion.current === version) {
+        setIsPlaying(false);
+        setAudioError('Audio could not start. Try the sound button again.');
       }
-    } catch (error) {
-      console.error('Error loading audio:', error);
+      return false;
     }
   }, []);
 
   const stopAudio = useCallback(() => {
+    playbackVersion.current++;
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
+      audioRef.current = null;
     }
+    setIsPlaying(false);
   }, []);
 
-  return { playAudio, stopAudio };
+  return { playAudio, stopAudio, isPlaying, audioError };
 };
 
 // Math Adventures audio files - simple numbered filenames

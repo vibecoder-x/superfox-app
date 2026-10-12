@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ClientPreferences from "@/components/ClientPreferences";
 
 export const metadata: Metadata = {
   title: "Superfox.net - Learn, Play, and Grow!",
@@ -22,11 +23,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9175515910132435"
-          crossOrigin="anonymous"></script>
-      </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <a href="#main-content" className="skip-link">Skip to content</a>
+        <ClientPreferences>{children}</ClientPreferences>
+      </body>
     </html>
   );
 }

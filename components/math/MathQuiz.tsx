@@ -1,7 +1,10 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { updateMathProgress } from '@/lib/math-progress';
+import { numericOptions } from '@/lib/math-questions';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { FaStar, FaTrophy, FaRedo, FaHeart } from 'react-icons/fa';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
@@ -37,17 +40,7 @@ const generateQuestion = (difficulty: 'easy' | 'medium' | 'hard'): Question => {
 
   const correctAnswer = operation === '+' ? num1 + num2 : num1 - num2;
 
-  // Generate wrong options
-  const options = [correctAnswer];
-  while (options.length < 4) {
-    const wrongAnswer = correctAnswer + Math.floor(Math.random() * 6) - 3;
-    if (wrongAnswer > 0 && !options.includes(wrongAnswer)) {
-      options.push(wrongAnswer);
-    }
-  }
-
-  // Shuffle options
-  options.sort(() => Math.random() - 0.5);
+  const options = numericOptions(correctAnswer);
 
   return {
     question: `${num1} ${operation} ${num2} = ?`,
@@ -71,6 +64,9 @@ export default function MathQuiz() {
   const [gameOver, setGameOver] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const { playAudio } = useAudio();
+  const { schedule, cancel } = useActivityTimer(difficulty);
+  const answerFocus = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if (currentQuestion && !showResult) answerFocus.current?.focus(); }, [currentQuestion, showResult]);
 
   useEffect(() => {
     setIsClient(true);
@@ -102,11 +98,11 @@ export default function MathQuiz() {
       if (lives - 1 <= 0) {
         setGameOver(true);
         // Save quiz completion to localStorage
-        saveQuizStats(score, questionCount + 1);
+        saveQuizStats(score);
       }
     }
 
-    setTimeout(() => {
+    schedule(() => {
       if (lives - 1 > 0 || correct) {
         // Reset all states first
         setSelectedAnswer(null);
@@ -119,31 +115,17 @@ export default function MathQuiz() {
     }, 1500);
   };
 
-  const saveQuizStats = (finalScore: number, totalQuestions: number) => {
-    try {
-      const savedStats = localStorage.getItem('mathAdventuresStats');
-      const stats = savedStats ? JSON.parse(savedStats) : {
-        lessonsCompleted: 0,
-        quizzesPassed: 0,
-        starsEarned: 0,
-        totalScore: 0,
-        gamesPlayed: 0,
-        lastActivity: 'Never',
-      };
-
-      const stars = Math.floor(finalScore / 10);
-      stats.quizzesPassed += 1;
-      stats.starsEarned += stars;
-      stats.totalScore += finalScore;
-      stats.lastActivity = new Date().toLocaleDateString();
-
-      localStorage.setItem('mathAdventuresStats', JSON.stringify(stats));
-    } catch (error) {
-      console.error('Failed to save quiz stats:', error);
-    }
+  const saveQuizStats = (finalScore: number) => {
+    updateMathProgress(current => ({
+      ...current, quizzesPassed: current.quizzesPassed + 1,
+      starsEarned: current.starsEarned + Math.floor(finalScore / 10),
+      totalScore: current.totalScore + finalScore,
+      lastActivity: new Date().toLocaleDateString(),
+    }));
   };
 
-  const handleRestart = () => {
+  const handleRestart = (nextDifficulty = difficulty) => {
+    cancel();
     setScore(0);
     setQuestionCount(0);
     setLives(3);
@@ -151,12 +133,12 @@ export default function MathQuiz() {
     setShowResult(false);
     setSelectedAnswer(null);
     setIsCorrect(null);
-    setCurrentQuestion(generateQuestion(difficulty));
+    setCurrentQuestion(generateQuestion(nextDifficulty));
   };
 
   const handleDifficultyChange = (newDifficulty: 'easy' | 'medium' | 'hard') => {
     setDifficulty(newDifficulty);
-    handleRestart();
+    handleRestart(newDifficulty);
   };
 
   if (!isClient || !currentQuestion) {
@@ -170,7 +152,7 @@ export default function MathQuiz() {
   return (
     <div className="w-full">
       {/* Difficulty Selection */}
-      <div className="flex justify-center gap-4 mb-6">
+      <div className="flex flex-wrap justify-center gap-3 mb-6">
         {(['easy', 'medium', 'hard'] as const).map((level) => (
           <button
             key={level}
@@ -187,7 +169,7 @@ export default function MathQuiz() {
       </div>
 
       {/* Score and Lives */}
-      <div className="flex justify-between items-center mb-6 bg-white rounded-2xl p-4 shadow-lg">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6 bg-white rounded-2xl p-4 shadow-lg">
         <div className="flex items-center gap-2">
           <FaStar className="text-yellow-400 text-2xl" />
           <span className="text-2xl font-bold text-gray-800">Score: {score}</span>
@@ -212,7 +194,7 @@ export default function MathQuiz() {
           key={questionCount}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-8 shadow-2xl"
+          className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-4 md:p-8 shadow-2xl"
         >
           {/* Question */}
           <div className="text-center mb-8">
@@ -229,6 +211,7 @@ export default function MathQuiz() {
             {currentQuestion.options.map((option, index) => (
               <motion.button
                 key={`${questionCount}-${index}-${option}`}
+                ref={index === 0 ? answerFocus : undefined}
                 whileHover={!showResult ? { scale: 1.05 } : {}}
                 whileTap={!showResult ? { scale: 0.95 } : {}}
                 onClick={() => handleAnswer(option)}
@@ -283,7 +266,7 @@ export default function MathQuiz() {
             You answered {questionCount} questions!
           </p>
           <button
-            onClick={handleRestart}
+            onClick={() => handleRestart()}
             className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-full text-xl flex items-center gap-2 mx-auto transition-all"
           >
             <FaRedo /> Play Again

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import ActivityDialog from '@/components/ActivityDialog';
 import { FaTimes, FaStar, FaTrophy, FaRedo, FaPalette } from 'react-icons/fa';
-import Image from 'next/image';
 
 interface Color {
   name: string;
@@ -72,9 +72,19 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [streak, setStreak] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [awardedPoints, setAwardedPoints] = useState(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const reduceMotion = useReducedMotion();
+  const clearTimers = () => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  };
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
 
   // Initialize game
   const startGame = (mode: GameMode) => {
+    clearTimers();
+    setShowCelebration(false);
     setGameMode(mode);
     setScore(0);
     setLevel(1);
@@ -131,7 +141,9 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
         .slice(0, numOptions - 1);
 
       setTargetColor(target);
-      setOptions(correctFamily.sort(() => Math.random() - 0.5));
+      const wrongColors = colorDatabase.filter(c => c.family !== randomFamily)
+        .sort(() => Math.random() - 0.5).slice(0, Math.max(1, numOptions - correctFamily.length));
+      setOptions([...correctFamily, ...wrongColors].sort(() => Math.random() - 0.5));
     }
   };
 
@@ -152,27 +164,17 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
 
     if (correct) {
       const points = 100 + (streak * 50);
+      setAwardedPoints(points);
       setScore(prev => prev + points);
       setStreak(prev => prev + 1);
 
-      if (streak > 0 && streak % 5 === 0) {
+      if ((streak + 1) % 5 === 0) {
         setShowCelebration(true);
-        setTimeout(() => setShowCelebration(false), 2000);
+        timersRef.current.push(setTimeout(() => setShowCelebration(false), 2000));
       }
 
-      setTimeout(() => {
-        if (score + points >= level * 500) {
-          setLevel(prev => prev + 1);
-          generateRound(gameMode!, level + 1);
-        } else {
-          generateRound(gameMode!, level);
-        }
-      }, 1500);
     } else {
       setStreak(0);
-      setTimeout(() => {
-        generateRound(gameMode!, level);
-      }, 2000);
     }
   };
 
@@ -184,10 +186,9 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+    <ActivityDialog
+      label="Color Match game"
+      onClose={onClose}
       className="fixed inset-0 bg-gradient-to-br from-purple-900 via-pink-800 to-orange-600 z-50 flex items-center justify-center p-4 overflow-hidden"
     >
       {/* Animated Background */}
@@ -197,19 +198,19 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
             key={i}
             className="absolute rounded-full"
             style={{
-              width: Math.random() * 100 + 50,
-              height: Math.random() * 100 + 50,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              background: `rgba(255, 255, 255, ${Math.random() * 0.1})`,
+              width: (i * 13) % 100 + 50,
+              height: (i * 13) % 100 + 50,
+              left: `${(i * 37) % 100}%`,
+              top: `${(i * 61) % 100}%`,
+              background: 'rgba(255, 255, 255, 0.08)',
             }}
-            animate={{
-              y: [0, Math.random() * 100 - 50, 0],
-              x: [0, Math.random() * 100 - 50, 0],
-              scale: [1, Math.random() + 0.5, 1],
+            animate={reduceMotion ? {} : {
+              y: [0, (i * 17) % 100 - 50, 0],
+              x: [0, (i * 19) % 100 - 50, 0],
+              scale: [1, 1.1, 1],
             }}
             transition={{
-              duration: Math.random() * 10 + 10,
+              duration: i % 10 + 10,
               repeat: Infinity,
               ease: 'easeInOut',
             }}
@@ -221,7 +222,7 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col relative z-10"
+        className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90dvh] overflow-hidden flex flex-col relative z-10"
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 p-4 flex items-center justify-between text-white">
@@ -239,6 +240,7 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
             </div>
           </div>
           <button
+            aria-label="Close Color Match"
             onClick={onClose}
             className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors"
           >
@@ -248,7 +250,7 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
 
         {/* Game Stats */}
         {gameMode && (
-          <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 flex justify-between items-center">
+          <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 flex flex-wrap gap-3 justify-between items-center">
             <div className="flex gap-6">
               <div className="text-center">
                 <p className="text-sm text-gray-600 font-semibold">Score</p>
@@ -334,7 +336,7 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
                   className="bg-gradient-to-r from-green-400 to-teal-400 text-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all"
                 >
                   <h4 className="text-2xl font-bold mb-2 baloo">👨‍👩‍👧 Color Family</h4>
-                  <p className="text-white/90">Match all colors in the same family!</p>
+                  <p className="text-white/90">Find another color in the same family!</p>
                 </motion.button>
               </div>
             </div>
@@ -376,6 +378,7 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
                     whileHover={{ scale: selectedColor ? 1 : 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleColorSelect(color)}
+                    aria-label={color.name}
                     disabled={selectedColor !== null}
                     className={`relative aspect-square rounded-2xl shadow-lg transition-all ${
                       selectedColor === color
@@ -419,6 +422,7 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -20, opacity: 0 }}
                     className="mt-8 text-center"
+                    role="status"
                   >
                     {isCorrect ? (
                       <div className="bg-green-100 border-4 border-green-500 rounded-2xl p-6">
@@ -426,7 +430,7 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
                           Awesome! 🎉
                         </p>
                         <p className="text-green-600">
-                          You matched {selectedColor.name}! +{100 + (streak * 50)} points
+                          You matched {selectedColor.name}! +{awardedPoints} points
                         </p>
                       </div>
                     ) : (
@@ -442,6 +446,11 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
                   </motion.div>
                 )}
               </AnimatePresence>
+              {selectedColor && <button className="mt-6 block mx-auto px-6 py-3 bg-purple-700 text-white font-bold rounded-full" onClick={() => {
+                const nextLevel = score >= level * 500 ? level + 1 : level;
+                setLevel(nextLevel);
+                generateRound(gameMode, nextLevel);
+              }}>Next Color</button>}
             </div>
           )}
         </div>
@@ -469,6 +478,6 @@ export default function ColorMatchGame({ onClose }: ColorMatchGameProps) {
           )}
         </AnimatePresence>
       </motion.div>
-    </motion.div>
+    </ActivityDialog>
   );
 }

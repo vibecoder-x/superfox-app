@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { FaGamepad, FaPuzzlePiece, FaTrophy, FaFire } from 'react-icons/fa';
+import { FaGamepad, FaPuzzlePiece, FaTrophy } from 'react-icons/fa';
 import ColorMatchGame from './games/ColorMatchGame';
 import SuperfoxRunnerGame from './games/SuperfoxRunnerGame';
 
@@ -54,7 +54,7 @@ export default function MiniGames() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
 
   const handleGameClick = (gameId: string) => {
-    setActiveGame(gameId);
+    if (gameId === 'superfox-runner' || gameId === 'color-match') setActiveGame(gameId);
   };
 
   const handleCloseGame = () => {
@@ -63,7 +63,7 @@ export default function MiniGames() {
 
   return (
     <>
-      <section className="py-20 bg-gradient-to-b from-purple-50 to-white relative overflow-hidden">
+      <section id="games" className="py-20 bg-gradient-to-b from-purple-50 to-white relative overflow-hidden">
         {/* Decorative background elements */}
         <div className="absolute top-0 left-0 w-64 h-64 bg-yellow-200 rounded-full filter blur-3xl opacity-30 -translate-x-32 -translate-y-32" />
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-200 rounded-full filter blur-3xl opacity-30 translate-x-32 translate-y-32" />
@@ -86,7 +86,7 @@ export default function MiniGames() {
           </motion.div>
 
           {/* Games Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          <div id="game-cards" className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             {games.map((game, index) => (
               <motion.div
                 key={index}
@@ -95,8 +95,7 @@ export default function MiniGames() {
                 transition={{ delay: index * 0.1, duration: 0.5 }}
                 viewport={{ once: true }}
                 whileHover={{ scale: 1.05 }}
-                onClick={() => handleGameClick(game.id)}
-                className="bg-white rounded-3xl shadow-xl overflow-hidden cursor-pointer group"
+                className="bg-white rounded-3xl shadow-xl overflow-hidden group"
               >
                 {/* Game Image */}
                 <div className="relative w-full aspect-square overflow-hidden">
@@ -115,13 +114,16 @@ export default function MiniGames() {
                     {game.icon}
                   </div>
                   {/* Play Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent transition-opacity duration-300 flex items-end justify-center pb-6">
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
+                      onClick={() => handleGameClick(game.id)}
+                      disabled={game.id !== 'superfox-runner' && game.id !== 'color-match'}
+                      aria-label={game.id === 'superfox-runner' || game.id === 'color-match' ? `Play ${game.title}` : `${game.title}: Coming Soon`}
                       className="bg-white text-superfox-purple font-bold py-3 px-8 rounded-full flex items-center gap-2"
                     >
-                      <FaGamepad /> Play Now
+                      <FaGamepad /> {game.id === 'superfox-runner' || game.id === 'color-match' ? 'Play Now' : 'Coming Soon'}
                     </motion.button>
                   </div>
                 </div>
@@ -195,7 +197,7 @@ export default function MiniGames() {
                     <div>
                       <h4 className="font-bold text-xl mb-1">Earn Rewards</h4>
                       <p className="text-white/90">
-                        Collect stars and unlock special achievements
+                        Collect points while you play. Saved achievements are Coming Soon.
                       </p>
                     </div>
                   </div>
@@ -211,9 +213,9 @@ export default function MiniGames() {
                     </div>
                   </div>
                 </div>
-                <button className="mt-8 bg-white text-superfox-orange font-bold py-4 px-8 rounded-full text-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                <a href="#game-cards" className="mt-8 inline-block bg-white text-orange-700 font-bold py-4 px-8 rounded-full text-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
                   Explore All Games
-                </button>
+                </a>
               </div>
             </div>
           </motion.div>

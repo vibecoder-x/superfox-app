@@ -2,9 +2,8 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { FaBook, FaPlay, FaHeart } from 'react-icons/fa';
+import { FaBook, FaPlay } from 'react-icons/fa';
 import { useState } from 'react';
-import { useAudio } from '@/hooks/useAudio';
 import MagicalForestStory from '@/components/stories/MagicalForestStory';
 
 const storyCategories = [
@@ -68,23 +67,9 @@ const featuredStories = [
 ];
 
 export default function StoryLibrary() {
-  const { playAudio, stopAudio } = useAudio();
-  const [playingStory, setPlayingStory] = useState<string | null>(null);
   const [showMagicalForest, setShowMagicalForest] = useState(false);
-
-  const handlePlayStory = (story: typeof featuredStories[0]) => {
-    if (!story.audioPath) return;
-
-    // If this story is already playing, stop it
-    if (playingStory === story.title) {
-      stopAudio();
-      setPlayingStory(null);
-    } else {
-      // Play the new story
-      playAudio(story.audioPath);
-      setPlayingStory(story.title);
-    }
-  };
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const visibleStories = featuredStories.filter(story => categoryFilter === 'All' || story.category === categoryFilter);
 
   const handleStoryClick = (story: typeof featuredStories[0]) => {
     // If story has interactive version, open it
@@ -100,7 +85,7 @@ export default function StoryLibrary() {
         <MagicalForestStory onClose={() => setShowMagicalForest(false)} />
       )}
 
-      <section className="py-20 bg-gradient-to-b from-blue-50 to-purple-50">
+      <section id="stories" className="py-20 bg-gradient-to-b from-blue-50 to-purple-50">
         <div className="container mx-auto px-4">
         {/* Section Header */}
         <motion.div
@@ -119,12 +104,15 @@ export default function StoryLibrary() {
 
           {/* Category Filters */}
           <div className="flex flex-wrap justify-center gap-4">
+            <button onClick={() => setCategoryFilter('All')} aria-pressed={categoryFilter === 'All'} className="bg-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg">All Stories</button>
             {storyCategories.map((category, index) => (
               <motion.button
                 key={index}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                className={`${category.color} text-white font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2`}
+                onClick={() => setCategoryFilter(category.name)}
+                aria-pressed={categoryFilter === category.name}
+                className={`${category.color} text-gray-900 font-bold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 ${categoryFilter === category.name ? 'ring-4 ring-purple-700 ring-offset-2' : ''}`}
               >
                 <span className="text-2xl">{category.icon}</span>
                 {category.name}
@@ -135,7 +123,7 @@ export default function StoryLibrary() {
 
         {/* Featured Stories Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {featuredStories.map((story, index) => (
+          {visibleStories.map((story, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, scale: 0.9 }}
@@ -143,8 +131,7 @@ export default function StoryLibrary() {
               transition={{ delay: index * 0.1, duration: 0.5 }}
               viewport={{ once: true }}
               whileHover={{ y: -10 }}
-              onClick={() => handleStoryClick(story)}
-              className="bg-white rounded-3xl shadow-xl overflow-hidden group cursor-pointer"
+              className="bg-white rounded-3xl shadow-xl overflow-hidden group"
             >
               {/* Story Image */}
               <div className="relative w-full aspect-square overflow-hidden">
@@ -156,9 +143,10 @@ export default function StoryLibrary() {
                 />
                 {/* Play Button Overlay */}
                 {story.audioPath && (
-                  <div
-                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer"
-                    onClick={() => handlePlayStory(story)}
+                  <button
+                    aria-label={`Read ${story.title}`}
+                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer"
+                    onClick={() => handleStoryClick(story)}
                   >
                     <motion.div
                       whileHover={{ scale: 1.2 }}
@@ -166,7 +154,7 @@ export default function StoryLibrary() {
                     >
                       <FaPlay className="text-superfox-orange text-4xl" />
                     </motion.div>
-                  </div>
+                  </button>
                 )}
                 {/* Duration Badge */}
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 text-sm font-bold text-gray-800">
@@ -184,14 +172,15 @@ export default function StoryLibrary() {
                   <span className="text-sm font-semibold text-superfox-blue">
                     {story.category}
                   </span>
-                  <button className="text-red-500 hover:scale-125 transition-transform">
-                    <FaHeart className="text-2xl" />
-                  </button>
+                  {story.hasInteractiveStory ? (
+                    <button onClick={() => handleStoryClick(story)} className="bg-superfox-blue text-white font-bold px-4 py-3 rounded-full">Read Story</button>
+                  ) : <span className="rounded-full bg-purple-100 text-purple-800 px-3 py-2 text-sm font-bold">Coming Soon</span>}
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
+        {visibleStories.length === 0 && <p role="status" className="text-center text-purple-800 bg-white rounded-2xl p-8 mb-12">Science stories are Coming Soon! Choose another category to explore.</p>}
 
         {/* Story Reading Features */}
         <motion.div
@@ -213,7 +202,7 @@ export default function StoryLibrary() {
             Interactive Story Experience
           </h3>
           <p className="text-xl mb-6 max-w-2xl mx-auto">
-            Every story comes with narrated audio, highlighted text, and beautiful animations!
+            Read The Magical Forest with narrated audio and illustrated pages. More adventures are coming soon!
           </p>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6">
@@ -224,7 +213,7 @@ export default function StoryLibrary() {
             <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6">
               <div className="text-5xl mb-3">✨</div>
               <h4 className="font-bold text-xl mb-2">Text Highlights</h4>
-              <p className="text-sm">Follow along with highlighted words</p>
+              <p className="text-sm">Word highlighting is Coming Soon</p>
             </div>
             <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6">
               <div className="text-5xl mb-3">🎨</div>

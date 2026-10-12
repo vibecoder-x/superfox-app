@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import ActivityDialog from '@/components/ActivityDialog';
 import Image from 'next/image';
-import { FaPlay, FaPause, FaArrowLeft, FaArrowRight, FaTimes, FaHome } from 'react-icons/fa';
+import { FaPlay, FaPause, FaArrowLeft, FaArrowRight, FaTimes } from 'react-icons/fa';
 
 const storyPages = [
   {
@@ -54,6 +55,7 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
   const [currentPage, setCurrentPage] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioError, setAudioError] = useState('');
 
   // Initialize audio only once
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
     };
 
     audioRef.current.addEventListener('ended', handleAudioEnded);
+    audioRef.current.addEventListener('pause', handleAudioEnded);
 
     return () => {
       if (audioRef.current) {
@@ -101,15 +104,22 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
     };
   }, [isPlaying]);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     if (!audioRef.current) return;
 
     if (isPlaying) {
       audioRef.current.pause();
+      setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      try {
+        setAudioError('');
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch {
+        setIsPlaying(false);
+        setAudioError('Narration is unavailable right now. You can still read every page.');
+      }
     }
-    setIsPlaying(!isPlaying);
   };
 
   const nextPage = () => {
@@ -143,17 +153,16 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+    <ActivityDialog
+      label="The Magical Forest story"
+      onClose={onClose}
       className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-gradient-to-br from-green-50 to-blue-50 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-gradient-to-br from-green-50 to-blue-50 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90dvh] overflow-hidden flex flex-col"
       >
         {/* Header with Logo */}
         <div className="bg-gradient-to-r from-green-400 to-blue-500 p-3 flex items-center justify-between text-white">
@@ -174,6 +183,7 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
             <h2 className="text-xl md:text-3xl font-bold baloo">🌳 The Magical Forest</h2>
           </div>
           <button
+            aria-label="Close story"
             onClick={onClose}
             className="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-colors"
           >
@@ -194,7 +204,7 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
             >
               <Image
                 src={storyPages[currentPage].image}
-                alt={`Page ${currentPage + 1}`}
+                alt={`Superfox and friends in the Magical Forest, illustration for page ${currentPage + 1}`}
                 fill
                 className="object-cover"
               />
@@ -211,12 +221,15 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-bold text-green-600">Page {currentPage + 1} of {storyPages.length}</span>
                 <button
+                  aria-label={isPlaying ? 'Pause narration' : 'Play narration'}
+                  aria-pressed={isPlaying}
                   onClick={togglePlayPause}
                   className="bg-gradient-to-r from-green-400 to-blue-500 text-white p-3 rounded-full hover:shadow-lg transition-all"
                 >
                   {isPlaying ? <FaPause className="text-xl" /> : <FaPlay className="text-xl" />}
                 </button>
               </div>
+              {audioError && <p role="status" className="text-red-700 mb-4">{audioError}</p>}
               <p className="text-gray-800 text-lg leading-relaxed whitespace-pre-line">
                 {storyPages[currentPage].text}
               </p>
@@ -230,32 +243,34 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="bg-white border-t border-gray-200 p-4 flex items-center justify-between"
+            className="bg-white border-t border-gray-200 p-3 flex flex-wrap gap-3 items-center justify-between"
           >
             <button
               onClick={prevPage}
               disabled={currentPage === 0}
-              className="flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
+              className="flex items-center gap-2 bg-green-700 text-white px-4 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
             >
               <FaArrowLeft /> Previous
             </button>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-1 order-last w-full justify-center sm:order-none sm:w-auto">
               {storyPages.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => jumpToPage(index)}
-                  className={`w-3 h-3 rounded-full transition-all ${
-                    index === currentPage ? 'bg-green-500 w-8' : 'bg-gray-300 hover:bg-gray-400'
+                  aria-label={`Go to page ${index + 1}`}
+                  aria-current={index === currentPage ? 'page' : undefined}
+                  className={`min-w-10 min-h-10 rounded-full transition-all ${
+                    index === currentPage ? 'bg-green-700 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
                   }`}
-                />
+                >{index + 1}</button>
               ))}
             </div>
 
             <button
               onClick={nextPage}
               disabled={currentPage === storyPages.length - 1}
-              className="flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
+              className="flex items-center gap-2 bg-green-700 text-white px-4 py-3 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
             >
               Next <FaArrowRight />
             </button>
@@ -283,6 +298,6 @@ export default function MagicalForestStory({ onClose }: { onClose: () => void })
           </motion.div>
         )}
       </motion.div>
-    </motion.div>
+    </ActivityDialog>
   );
 }

@@ -3,12 +3,9 @@
 import { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaPaintBrush, FaEraser, FaCircle, FaSquare, FaStar, FaUndo, FaRedo, FaDownload, FaTrash, FaImage, FaSave, FaFillDrip } from 'react-icons/fa';
+import { saveArtwork } from './artworkStorage';
 
 type Tool = 'brush' | 'eraser' | 'circle' | 'square' | 'triangle' | 'star' | 'stamp' | 'fill';
-type DrawingAction = {
-  type: 'stroke' | 'shape' | 'stamp';
-  data: any;
-};
 
 const colors = [
   { name: 'Red', value: '#FF0000' },
@@ -41,6 +38,9 @@ export default function DrawingCanvas() {
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [previewShape, setPreviewShape] = useState<{x: number, y: number, size: number} | null>(null);
+  const [saveError, setSaveError] = useState('');
+  const keyboardPositionRef = useRef({ x: 400, y: 400 });
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -49,34 +49,14 @@ export default function DrawingCanvas() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size responsive - square and adaptive to device width
-    const updateCanvasSize = () => {
-      const container = canvas.parentElement;
-      if (!container) return;
-
-      // Adaptive to device width with padding
-      const availableWidth = window.innerWidth - 64; // Leave space for margins
-      const containerWidth = container.clientWidth - 32;
-
-      // Use the smaller of available width or container width
-      const size = Math.min(availableWidth, containerWidth);
-
-      // Make it square: width = height
-      canvas.width = size;
-      canvas.height = size;
-
-      // Fill with white background
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Save initial state
-      saveToHistory();
-    };
-
-    updateCanvasSize();
-    window.addEventListener('resize', updateCanvasSize);
-
-    return () => window.removeEventListener('resize', updateCanvasSize);
+    // CSS scales a stable drawing surface; resizing the screen must not erase art.
+    canvas.width = 800;
+    canvas.height = 800;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    setHistory([ctx.getImageData(0, 0, canvas.width, canvas.height)]);
+    setHistoryStep(0);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, []);
 
   const saveToHistory = () => {
@@ -87,7 +67,7 @@ export default function DrawingCanvas() {
     if (!ctx) return;
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const newHistory = history.slice(0, historyStep + 1);
+    const newHistory = history.slice(0, historyStep + 1).slice(-49);
     newHistory.push(imageData);
     setHistory(newHistory);
     setHistoryStep(newHistory.length - 1);
@@ -108,7 +88,7 @@ export default function DrawingCanvas() {
     const pixelsToCheck = [x, y];
     const width = canvas.width;
     const height = canvas.height;
-    const checkedPixels = new Set();
+    const checkedPixels = new Set<number>();
 
     while (pixelsToCheck.length > 0) {
       const y = pixelsToCheck.pop()!;
@@ -153,7 +133,7 @@ export default function DrawingCanvas() {
     } : null;
   };
 
-  const colorsMatch = (a: any, b: any) => {
+  const colorsMatch = (a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }) => {
     return a.r === b.r && a.g === b.g && a.b === b.b;
   };
 
@@ -208,22 +188,14 @@ export default function DrawingCanvas() {
 
     try {
       const dataUrl = canvas.toDataURL('image/png');
-      const artwork = {
-        id: `artwork-${Date.now()}`,
-        dataUrl: dataUrl,
-        timestamp: Date.now()
-      };
-
-      const saved = localStorage.getItem('superfox-artworks');
-      const artworks = saved ? JSON.parse(saved) : [];
-      artworks.push(artwork);
-      localStorage.setItem('superfox-artworks', JSON.stringify(artworks));
-
+      saveArtwork(dataUrl, 'artwork');
+      setSaveError('');
       setShowSaveConfirmation(true);
-      setTimeout(() => setShowSaveConfirmation(false), 3000);
-    } catch (error) {
-      console.error('Failed to save artwork:', error);
-      alert('Failed to save artwork to gallery');
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => setShowSaveConfirmation(false), 3000);
+    } catch {
+      setShowSaveConfirmation(false);
+      setSaveError('This device could not save your artwork. Download a PNG to keep it, or ask an adult to check browser storage.');
     }
   };
 
@@ -469,6 +441,54 @@ export default function DrawingCanvas() {
     ctx.fill();
   };
 
+  const drawWithKeyboard = (event: React.KeyboardEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    const position = keyboardPositionRef.current;
+    const directions: Record<string, [number, number]> = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] };
+    const direction = directions[event.key];
+    if (direction) {
+      event.preventDefault();
+      const next = { x: Math.max(0, Math.min(799, position.x + direction[0])), y: Math.max(0, Math.min(799, position.y + direction[1])) };
+      if (event.shiftKey && (currentTool === 'brush' || currentTool === 'eraser')) {
+        ctx.beginPath();
+        ctx.moveTo(position.x, position.y);
+        ctx.lineTo(next.x, next.y);
+        ctx.strokeStyle = currentTool === 'eraser' ? '#FFFFFF' : currentColor;
+        ctx.lineWidth = brushSize;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        saveToHistory();
+      }
+      keyboardPositionRef.current = next;
+    } else if (event.code === 'Space' || event.key === 'Enter') {
+      event.preventDefault();
+      if (currentTool === 'fill') { floodFill(position.x, position.y, currentColor); return; }
+      ctx.fillStyle = currentTool === 'eraser' ? '#FFFFFF' : currentColor;
+      if (currentTool === 'stamp') {
+        ctx.font = `${shapeSize}px Arial`;
+        ctx.fillText(selectedStamp, position.x - shapeSize / 2, position.y + shapeSize / 4);
+      } else if (currentTool === 'square') {
+        ctx.fillRect(position.x - shapeSize / 2, position.y - shapeSize / 2, shapeSize, shapeSize);
+      } else if (currentTool === 'triangle') {
+        ctx.beginPath();
+        ctx.moveTo(position.x, position.y - shapeSize / 2);
+        ctx.lineTo(position.x + shapeSize / 2, position.y + shapeSize / 2);
+        ctx.lineTo(position.x - shapeSize / 2, position.y + shapeSize / 2);
+        ctx.closePath();
+        ctx.fill();
+      } else if (currentTool === 'star') {
+        drawStar(ctx, position.x, position.y, 5, shapeSize, shapeSize / 2);
+      } else {
+        ctx.beginPath();
+        ctx.arc(position.x, position.y, currentTool === 'circle' ? shapeSize : brushSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      saveToHistory();
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-6">
       <motion.div
@@ -486,42 +506,42 @@ export default function DrawingCanvas() {
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mb-4">
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setCurrentTool('brush')}
             className={`px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm md:text-base transition-all ${currentTool === 'brush' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-            <FaPaintBrush className="text-sm md:text-base" /> <span className="hidden sm:inline">Brush</span>
+            <FaPaintBrush className="text-sm md:text-base" /> <span>Brush</span>
           </motion.button>
 
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setCurrentTool('fill')}
             className={`px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm md:text-base transition-all ${currentTool === 'fill' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-            <FaFillDrip className="text-sm md:text-base" /> <span className="hidden sm:inline">Fill</span>
+            <FaFillDrip className="text-sm md:text-base" /> <span>Fill</span>
           </motion.button>
 
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setCurrentTool('eraser')}
             className={`px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm md:text-base transition-all ${currentTool === 'eraser' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-            <FaEraser className="text-sm md:text-base" /> <span className="hidden sm:inline">Eraser</span>
+            <FaEraser className="text-sm md:text-base" /> <span>Eraser</span>
           </motion.button>
 
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setCurrentTool('circle')}
             className={`px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm md:text-base transition-all ${currentTool === 'circle' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-            <FaCircle className="text-sm md:text-base" /> <span className="hidden sm:inline">Circle</span>
+            <FaCircle className="text-sm md:text-base" /> <span>Circle</span>
           </motion.button>
 
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setCurrentTool('square')}
             className={`px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm md:text-base transition-all ${currentTool === 'square' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-            <FaSquare className="text-sm md:text-base" /> <span className="hidden sm:inline">Square</span>
+            <FaSquare className="text-sm md:text-base" /> <span>Square</span>
           </motion.button>
 
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setCurrentTool('triangle')}
             className={`px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm md:text-base transition-all ${currentTool === 'triangle' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-            <span className="text-sm md:text-base">▲</span> <span className="hidden sm:inline">Triangle</span>
+            <span className="text-sm md:text-base">▲</span> <span>Triangle</span>
           </motion.button>
 
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setCurrentTool('star')}
             className={`px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm md:text-base transition-all ${currentTool === 'star' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-            <FaStar className="text-sm md:text-base" /> <span className="hidden sm:inline">Star</span>
+            <FaStar className="text-sm md:text-base" /> <span>Star</span>
           </motion.button>
 
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { setCurrentTool('stamp'); setShowStamps(!showStamps); }}
             className={`px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm md:text-base transition-all ${currentTool === 'stamp' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-            <FaImage className="text-sm md:text-base" /> <span className="hidden sm:inline">Stamps</span>
+            <FaImage className="text-sm md:text-base" /> <span>Stamps</span>
           </motion.button>
         </div>
 
@@ -530,7 +550,7 @@ export default function DrawingCanvas() {
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-purple-50 rounded-2xl p-3 mb-4">
             <div className="grid grid-cols-6 sm:grid-cols-10 gap-2">
               {stamps.map((stamp) => (
-                <motion.button key={stamp} whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => setSelectedStamp(stamp)}
+                <motion.button key={stamp} aria-label={`Use ${stamp} stamp`} aria-pressed={selectedStamp === stamp} whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => setSelectedStamp(stamp)}
                   className={`text-2xl md:text-3xl p-2 rounded-lg transition-all ${selectedStamp === stamp ? 'bg-purple-300 shadow-lg' : 'bg-white hover:bg-purple-100'}`}>
                   {stamp}
                 </motion.button>
@@ -548,6 +568,8 @@ export default function DrawingCanvas() {
                 className={`h-10 md:h-12 rounded-lg transition-all shadow-md ${currentColor === color.value ? 'ring-4 ring-purple-400 ring-offset-2 scale-110' : 'hover:scale-105'}`}
                 style={{ backgroundColor: color.value }}
                 title={color.name}
+                aria-label={color.name}
+                aria-pressed={currentColor === color.value}
               />
             ))}
           </div>
@@ -557,13 +579,13 @@ export default function DrawingCanvas() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div className="flex flex-col gap-2">
             <label className="font-bold text-gray-700 text-sm">Brush Size: {brushSize}px</label>
-            <input type="range" min="1" max="50" value={brushSize} onChange={(e) => setBrushSize(parseInt(e.target.value))}
+            <input aria-label="Brush size" type="range" min="1" max="50" value={brushSize} onChange={(e) => setBrushSize(parseInt(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500" />
           </div>
 
           <div className="flex flex-col gap-2">
             <label className="font-bold text-gray-700 text-sm">Shape Size: {shapeSize}px</label>
-            <input type="range" min="10" max="150" value={shapeSize} onChange={(e) => setShapeSize(parseInt(e.target.value))}
+            <input aria-label="Shape size" type="range" min="10" max="150" value={shapeSize} onChange={(e) => setShapeSize(parseInt(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500" />
           </div>
         </div>
@@ -587,12 +609,12 @@ export default function DrawingCanvas() {
 
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={downloadArtwork}
             className="px-3 py-2 md:px-4 md:py-3 bg-green-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-600 text-sm md:text-base">
-            <FaDownload /> <span className="hidden sm:inline">Download</span>
+            <FaDownload /> <span>Download</span>
           </motion.button>
 
           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={saveToGallery}
             className="px-3 py-2 md:px-4 md:py-3 bg-purple-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-purple-600 text-sm md:text-base">
-            <FaSave /> <span className="hidden sm:inline">Save</span>
+            <FaSave /> <span>Save</span>
           </motion.button>
         </div>
 
@@ -600,18 +622,21 @@ export default function DrawingCanvas() {
         {showSaveConfirmation && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="mt-4 bg-green-100 border-2 border-green-500 rounded-xl p-4 text-center">
-            <p className="text-green-700 font-bold text-lg">✅ Artwork saved to gallery!</p>
+            <p role="status" className="text-green-700 font-bold text-lg">✅ Artwork saved on this device!</p>
           </motion.div>
         )}
+        {saveError && <p role="status" className="mt-4 text-red-700">{saveError}</p>}
       </div>
 
       {/* Canvas with Shape Preview */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
         className="bg-white rounded-3xl shadow-2xl p-4 flex justify-center relative">
-        <div className="relative">
-          <canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={() => setIsDrawing(false)}
+        <div className="relative w-full max-w-[800px]">
+          <canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing}
             onTouchStart={startDrawingTouch} onTouchMove={drawTouch} onTouchEnd={stopDrawingTouch}
-            className="border-4 border-purple-300 rounded-2xl cursor-crosshair touch-none max-w-full h-auto"
+            tabIndex={0} onKeyDown={drawWithKeyboard}
+            aria-label="Drawing canvas. Arrow keys move the drawing position. Shift and arrows draw strokes. Space places the selected shape, stamp, color, or brush."
+            className="border-4 border-purple-300 rounded-2xl cursor-crosshair touch-none w-full h-auto"
           />
           {/* Shape Size Preview */}
           {previewShape && ['circle', 'square', 'triangle', 'star'].includes(currentTool) && (
@@ -621,6 +646,7 @@ export default function DrawingCanvas() {
           )}
         </div>
       </motion.div>
+      <p className="text-gray-700 mt-4 text-center">Save or download before leaving the studio. Keyboard: use arrows to move from the center, Shift + arrows to draw, and Space to use your tool. Recent undo history keeps up to 50 steps.</p>
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { placeValueAnswer, numericOptions } from '@/lib/math-questions';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type PlaceLevel = 'ones' | 'tens' | 'hundreds' | 'expanded-form';
@@ -9,6 +11,7 @@ type PlaceLevel = 'ones' | 'tens' | 'hundreds' | 'expanded-form';
 export default function PlaceValue() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<PlaceLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [number, setNumber] = useState(0);
   const [ones, setOnes] = useState(0);
   const [tens, setTens] = useState(0);
@@ -68,32 +71,11 @@ export default function PlaceValue() {
     setTens(t);
     setHundreds(h);
 
-    // Generate options
+    const answer = placeValueAnswer(num, lvl);
     if (lvl === 'expanded-form') {
-      const wrongOptions: string[] = [];
-      while (wrongOptions.length < 2) {
-        const wrongNum = Math.floor(Math.random() * 900) + 100;
-        const wrongO = wrongNum % 10;
-        const wrongT = Math.floor((wrongNum % 100) / 10);
-        const wrongH = Math.floor(wrongNum / 100);
-        const wrongOption = `${wrongH * 100} + ${wrongT * 10} + ${wrongO}`;
-        if (wrongOption !== correctAnswer && !wrongOptions.includes(wrongOption)) {
-          wrongOptions.push(wrongOption);
-        }
-      }
-      setOptions([correctAnswer, ...wrongOptions].sort(() => Math.random() - 0.5));
+      setOptions([answer, placeValueAnswer(num + 100, lvl), placeValueAnswer(num + 10, lvl)].sort(() => Math.random() - 0.5));
     } else {
-      const wrongOptions: string[] = [];
-      const correctVal = parseInt(correctAnswer);
-      const possibleWrong = [correctVal - 1, correctVal + 1, correctVal - 2, correctVal + 2].filter(v => v >= 0 && v <= 9);
-      while (wrongOptions.length < 2 && possibleWrong.length > 0) {
-        const idx = Math.floor(Math.random() * possibleWrong.length);
-        const val = possibleWrong.splice(idx, 1)[0];
-        if (!wrongOptions.includes(val.toString())) {
-          wrongOptions.push(val.toString());
-        }
-      }
-      setOptions([correctAnswer, ...wrongOptions].sort(() => Math.random() - 0.5));
+      setOptions(numericOptions(Number(answer), 3).map(String));
     }
   };
 
@@ -117,7 +99,7 @@ export default function PlaceValue() {
       setScore(score + 20);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setShowFeedback(null);
       }, 1500);
@@ -126,11 +108,11 @@ export default function PlaceValue() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setShowFeedback(null);
         }, 1500);
       }
@@ -153,6 +135,7 @@ export default function PlaceValue() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -175,7 +158,7 @@ export default function PlaceValue() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🎊</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Place Value Pro!</h2>
         <p className="text-2xl text-gray-600 mb-6">You solved {questionsAnswered} place value problems!</p>
@@ -189,8 +172,8 @@ export default function PlaceValue() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-pink-600">Score: {score}</div>
           <div className="text-2xl font-bold text-rose-600">Solved: {questionsAnswered}</div>
         </div>
@@ -201,7 +184,7 @@ export default function PlaceValue() {
         </div>
       </div>
 
-      <motion.div key={number} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-pink-100 to-rose-100 rounded-3xl p-12 shadow-2xl">
+      <motion.div key={number} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-pink-100 to-rose-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
         <div className="text-center space-y-8">
           <h3 className="text-3xl font-bold text-gray-800">{questionType}</h3>
 
@@ -218,7 +201,7 @@ export default function PlaceValue() {
             {hundreds > 0 && (
               <div className="space-y-2">
                 <div className="text-sm font-bold text-gray-600">Hundreds</div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {[...Array(hundreds)].map((_, i) => (
                     <motion.div
                       key={`h${i}`}
@@ -237,7 +220,7 @@ export default function PlaceValue() {
             {tens > 0 && (
               <div className="space-y-2">
                 <div className="text-sm font-bold text-gray-600">Tens</div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {[...Array(tens)].map((_, i) => (
                     <motion.div
                       key={`t${i}`}
@@ -273,7 +256,7 @@ export default function PlaceValue() {
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {options.map((option, index) => (
               <motion.button
                 key={option}
@@ -293,7 +276,7 @@ export default function PlaceValue() {
           </div>
 
           {showFeedback && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
               {showFeedback === 'correct' ? '✅ Correct!' : `❌ It\'s ${correctAnswer}!`}
             </motion.div>
           )}

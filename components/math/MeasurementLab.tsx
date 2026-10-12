@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { numericOptions } from '@/lib/math-questions';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type MeasureLevel = 'length' | 'weight' | 'volume' | 'comparing';
@@ -9,6 +11,7 @@ type MeasureLevel = 'length' | 'weight' | 'volume' | 'comparing';
 export default function MeasurementLab() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<MeasureLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [measurement, setMeasurement] = useState(0);
   const [unit, setUnit] = useState('');
   const [item, setItem] = useState('');
@@ -61,16 +64,7 @@ export default function MeasurementLab() {
     const correct = `${selectedItem.length} ${selectedItem.unit}`;
     setCorrectAnswer(correct);
 
-    const wrongOptions: string[] = [];
-    while (wrongOptions.length < 2) {
-      const wrongValue = selectedItem.length + (Math.random() > 0.5 ? 2 : -2);
-      const wrongOption = `${wrongValue} ${selectedItem.unit}`;
-      if (!wrongOptions.includes(wrongOption) && wrongOption !== correct) {
-        wrongOptions.push(wrongOption);
-      }
-    }
-
-    setOptions([correct, ...wrongOptions].sort(() => Math.random() - 0.5));
+    setOptions(numericOptions(Number(correct.split(" ")[0]), 3).map(value => `${value} ${correct.split(" ").slice(1).join(" ")}`));
   };
 
   const generateWeightQuestion = () => {
@@ -83,17 +77,7 @@ export default function MeasurementLab() {
     const correct = `${selectedItem.weight} ${selectedItem.weight === 1 ? 'pound' : selectedItem.unit}`;
     setCorrectAnswer(correct);
 
-    const wrongOptions: string[] = [];
-    while (wrongOptions.length < 2) {
-      const wrongValue = selectedItem.weight + (Math.random() > 0.5 ? 2 : -1);
-      const wrongUnit = wrongValue === 1 ? 'pound' : selectedItem.unit;
-      const wrongOption = `${wrongValue} ${wrongUnit}`;
-      if (!wrongOptions.includes(wrongOption) && wrongOption !== correct && wrongValue > 0) {
-        wrongOptions.push(wrongOption);
-      }
-    }
-
-    setOptions([correct, ...wrongOptions].sort(() => Math.random() - 0.5));
+    setOptions(numericOptions(Number(correct.split(" ")[0]), 3).map(value => `${value} ${correct.split(" ").slice(1).join(" ")}`));
   };
 
   const generateVolumeQuestion = () => {
@@ -106,37 +90,18 @@ export default function MeasurementLab() {
     const correct = `${selectedItem.volume} ${selectedItem.unit}`;
     setCorrectAnswer(correct);
 
-    const wrongOptions: string[] = [];
-    while (wrongOptions.length < 2) {
-      const wrongValue = selectedItem.volume + (Math.random() > 0.5 ? 2 : -2);
-      const wrongOption = `${wrongValue} ${selectedItem.unit}`;
-      if (!wrongOptions.includes(wrongOption) && wrongOption !== correct && wrongValue > 0) {
-        wrongOptions.push(wrongOption);
-      }
-    }
-
-    setOptions([correct, ...wrongOptions].sort(() => Math.random() - 0.5));
+    setOptions(numericOptions(Number(correct.split(" ")[0]), 3).map(value => `${value} ${correct.split(" ").slice(1).join(" ")}`));
   };
 
   const generateComparingQuestion = () => {
-    const allItems = [...lengthItems, ...weightItems, ...volumeItems];
-    const item1 = allItems[Math.floor(Math.random() * allItems.length)];
-    const item2 = allItems[Math.floor(Math.random() * allItems.length)];
-
-    setItem(`${item1.name} vs ${item2.name}`);
+    const firstIndex = Math.floor(Math.random() * lengthItems.length);
+    const item1 = lengthItems[firstIndex];
+    const item2 = lengthItems[(firstIndex + 1) % lengthItems.length];
+    setItem(`${item1.name} (${item1.length} ${item1.unit}) vs ${item2.name} (${item2.length} ${item2.unit})`);
     setItemEmoji(`${item1.emoji} ${item2.emoji}`);
-
-    const val1 = (item1 as any).length || (item1 as any).weight || (item1 as any).volume;
-    const val2 = (item2 as any).length || (item2 as any).weight || (item2 as any).volume;
-
-    if (val1 > val2) {
-      setCorrectAnswer(item1.name);
-    } else if (val2 > val1) {
-      setCorrectAnswer(item2.name);
-    } else {
-      setCorrectAnswer('Same size');
-    }
-
+    const val1 = item1.length * (item1.unit === 'feet' ? 12 : 1);
+    const val2 = item2.length * (item2.unit === 'feet' ? 12 : 1);
+    setCorrectAnswer(val1 > val2 ? item1.name : val2 > val1 ? item2.name : 'Same size');
     setOptions([item1.name, item2.name, 'Same size'].sort(() => Math.random() - 0.5));
   };
 
@@ -172,7 +137,7 @@ export default function MeasurementLab() {
       setScore(score + 15);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setShowFeedback(null);
       }, 1500);
@@ -181,11 +146,11 @@ export default function MeasurementLab() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setShowFeedback(null);
         }, 1500);
       }
@@ -208,6 +173,7 @@ export default function MeasurementLab() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -230,7 +196,7 @@ export default function MeasurementLab() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🏆</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Measurement Master!</h2>
         <p className="text-2xl text-gray-600 mb-6">You measured {questionsAnswered} items correctly!</p>
@@ -244,8 +210,8 @@ export default function MeasurementLab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-orange-600">Score: {score}</div>
           <div className="text-2xl font-bold text-amber-600">Measured: {questionsAnswered}</div>
         </div>
@@ -257,10 +223,10 @@ export default function MeasurementLab() {
       </div>
 
       {item && (
-        <motion.div key={item} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-orange-100 to-amber-100 rounded-3xl p-12 shadow-2xl">
+        <motion.div key={item} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-orange-100 to-amber-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
           <div className="text-center space-y-8">
             <h3 className="text-3xl font-bold text-gray-800">
-              {level === 'comparing' ? 'Which one is bigger?' : `How much does this ${level}?`}
+              {level === 'comparing' ? 'Which one is longer?' : 'Read the example measurement'}
             </h3>
 
             <motion.div
@@ -276,11 +242,12 @@ export default function MeasurementLab() {
             {level !== 'comparing' && (
               <div className="bg-white rounded-2xl p-6 inline-block shadow-lg">
                 <div className="text-7xl mb-2">📏</div>
-                <p className="text-lg text-gray-600">Choose the correct measurement</p>
+                <p className="text-2xl font-bold text-gray-800">{measurement} {unit}</p>
+                <p className="text-lg text-gray-600">This is an example reading. Choose the matching measurement below.</p>
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
               {options.map((option, index) => (
                 <motion.button
                   key={option}
@@ -300,7 +267,7 @@ export default function MeasurementLab() {
             </div>
 
             {showFeedback && (
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
                 {showFeedback === 'correct' ? '✅ Perfect!' : `❌ It\'s ${correctAnswer}!`}
               </motion.div>
             )}

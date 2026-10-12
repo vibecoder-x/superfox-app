@@ -1,7 +1,10 @@
 'use client';
 
+import { isExactWholeNumberAnswer } from '@/lib/math-activities';
+
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useActivityTimer } from '@/hooks/useActivityTimer';
 import { useAudio, mathAudioFiles, getRandomAudio } from '@/hooks/useAudio';
 
 type DivisionLevel = 'div-2' | 'div-5' | 'div-10' | 'mixed';
@@ -9,11 +12,16 @@ type DivisionLevel = 'div-2' | 'div-5' | 'div-10' | 'mixed';
 export default function DivisionMaster() {
   const { playAudio } = useAudio();
   const [level, setLevel] = useState<DivisionLevel | null>(null);
+  const { schedule } = useActivityTimer(level);
   const [question, setQuestion] = useState<{divisor: number; dividend: number; answer: number} | null>(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [showFeedback, setShowFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const answerInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!showFeedback) answerInput.current?.focus();
+  }, [showFeedback]);
   const [lives, setLives] = useState(5);
 
   const levels = [
@@ -51,9 +59,9 @@ export default function DivisionMaster() {
   };
 
   const handleSubmit = () => {
-    if (!question || userAnswer === '') return;
+    if (!question || userAnswer === '' || showFeedback) return;
 
-    const isCorrect = parseInt(userAnswer) === question.answer;
+    const isCorrect = isExactWholeNumberAnswer(userAnswer, question.answer);
     setShowFeedback(isCorrect ? 'correct' : 'incorrect');
 
     if (isCorrect) {
@@ -61,7 +69,7 @@ export default function DivisionMaster() {
       setScore(score + 15);
       setQuestionsAnswered(questionsAnswered + 1);
 
-      setTimeout(() => {
+      schedule(() => {
         if (level) generateQuestion(level);
         setUserAnswer('');
         setShowFeedback(null);
@@ -71,12 +79,12 @@ export default function DivisionMaster() {
       setLives(lives - 1);
 
       if (lives - 1 <= 0) {
-        setTimeout(() => {
+        schedule(() => {
           setLevel(null);
           setQuestion(null);
         }, 1500);
       } else {
-        setTimeout(() => {
+        schedule(() => {
           setUserAnswer('');
           setShowFeedback(null);
         }, 1500);
@@ -100,6 +108,7 @@ export default function DivisionMaster() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05 }}
+              role="button" tabIndex={0} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); startLevel(lvl.id); } }}
               onClick={() => startLevel(lvl.id)}
               className={`bg-gradient-to-br ${lvl.color} rounded-3xl p-8 cursor-pointer shadow-xl hover:shadow-2xl transition-all`}
             >
@@ -117,7 +126,7 @@ export default function DivisionMaster() {
 
   if (lives <= 0) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-12 text-center shadow-2xl">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-6 sm:p-12 text-center shadow-2xl">
         <div className="text-8xl mb-6">🌟</div>
         <h2 className="text-4xl font-bold text-gray-800 mb-4 baloo">Excellent Work!</h2>
         <p className="text-2xl text-gray-600 mb-6">You solved {questionsAnswered} division problems!</p>
@@ -131,8 +140,8 @@ export default function DivisionMaster() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white rounded-2xl p-4 shadow-lg">
+        <div className="flex flex-wrap gap-4">
           <div className="text-2xl font-bold text-purple-600">Score: {score}</div>
           <div className="text-2xl font-bold text-fuchsia-600">Solved: {questionsAnswered}</div>
         </div>
@@ -144,11 +153,11 @@ export default function DivisionMaster() {
       </div>
 
       {question && (
-        <motion.div key={`${question.dividend}-${question.divisor}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-purple-100 to-fuchsia-100 rounded-3xl p-12 shadow-2xl">
+        <motion.div key={`${question.dividend}-${question.divisor}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-purple-100 to-fuchsia-100 rounded-3xl p-6 sm:p-12 shadow-2xl">
           <div className="text-center space-y-8">
             <h3 className="text-3xl font-bold text-gray-800">Divide Equally!</h3>
 
-            <div className="flex items-center justify-center gap-8 text-6xl font-bold text-purple-600">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-6xl font-bold text-purple-600">
               <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 2 }}>{question.dividend}</motion.div>
               <div className="text-5xl">➗</div>
               <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 2, delay: 0.3 }}>{question.divisor}</motion.div>
@@ -171,14 +180,14 @@ export default function DivisionMaster() {
               </div>
             </div>
 
-            <input type="number" value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSubmit()} className="w-48 text-5xl text-center font-bold border-4 border-purple-500 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-purple-300" placeholder="?" autoFocus />
+            <input ref={answerInput} type="number" aria-label="Your answer" disabled={showFeedback !== null} value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} className="w-48 text-5xl text-center font-bold border-4 border-purple-500 rounded-2xl p-4 focus:outline-none focus:ring-4 focus:ring-purple-300" placeholder="?" autoFocus />
 
-            <button onClick={handleSubmit} disabled={userAnswer === ''} className="bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white font-bold py-4 px-12 rounded-full text-2xl hover:scale-105 transition-transform disabled:opacity-50">
+            <button onClick={handleSubmit} disabled={userAnswer === '' || showFeedback !== null} className="bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white font-bold py-4 px-12 rounded-full text-2xl hover:scale-105 transition-transform disabled:opacity-50">
               Check Answer! ✓
             </button>
 
             {showFeedback && (
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} role="status" aria-live="polite" className={`text-3xl sm:text-6xl ${showFeedback === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
                 {showFeedback === 'correct' ? '✅ Perfect!' : '❌ Try again!'}
               </motion.div>
             )}

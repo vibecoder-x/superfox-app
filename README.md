@@ -1,190 +1,85 @@
-# 🦊 Superfox.net - Interactive Kids Learning Platform
+# 🦊 Superfox.net
 
-A vibrant, 3D-cartoon-inspired educational website for kids aged 5-12, featuring Superfox - a friendly orange fox wearing blue goggles and a blue cape who loves to learn, teach, and play!
+An existing Next.js App Router educational playground for children aged 5–12. Phase 1 preserves its illustrations, lessons, games, animations, and audio while securing the API and repairing stability and accessibility defects.
 
-## ✨ Features
+## What is available
 
-- **Hero Section**: Animated welcome screen with floating Superfox
-- **Learning World**: Interactive modules for Math, Reading, Science, and Creativity
-- **Story Library**: Collection of engaging stories with Superfox as the main character
-- **Mini-Games**: Educational games with puzzles, counting, and color matching
-- **About Superfox**: Learn about our learning hero and his mission
-- **Parent Zone**: Information for parents about safety, progress tracking, and educational benefits
-- **Gamification**: Stars, badges, and level progression system
+- **Math Adventures:** 22 existing activity entries, including the three guided Math Tutor lessons, quiz, counting/matching/sequence games, arithmetic, shapes, patterns, fractions, money, time, measurement, place value, comparison, estimation, graphs, and decimals.
+- **Science Lab:** Space Explorer with planet information, solar-system view, and quiz. Nature, experiments, human body, and weather are clearly marked Coming Soon.
+- **Creative Studio:** drawing tools, four coloring books, PNG download, and a gallery stored in this browser. Existing coloring pages: Fruits 11, Jungle 13, Dinosaurs 13, Animals 6.
+- **Story Library:** The Magical Forest's illustrated pages and user-controlled narration. Other story cards are Coming Soon; category filters work.
+- **Mini-Games:** Superfox Runner and Color Match. Number Quest, Shape Builder, and Music Maker are Coming Soon.
+- **Parent Zone:** current storage/privacy information, FAQ, and a link to browser-local math progress. Accounts, parental consent, a parent dashboard, automated screen-time controls, and support/newsletter services are unavailable.
+- **Superfox:** a branded activity dialog. Open-ended AI chat is hard-disabled in every production build.
 
-## 🚀 Getting Started
+Math Tutor completions, finished quizzes, and solved Number Games rounds update browser-local counters. Other math activities have session scores; there is no platform-wide badge or level system. Browser storage can be cleared, blocked, or exhausted, and is not a secure account or backup. It does not sync across devices. See [the audited status and action inventory](docs/PROJECT_STATUS.md).
 
-### Prerequisites
+## Local development
 
-- Node.js 18+ installed
-- npm or yarn package manager
+Use Node.js 22 or newer and npm; Node.js 24 is used for Phase 1 verification.
 
-### Installation
-
-1. Navigate to the project directory:
-```bash
-cd SuperFox/superfox-app
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Run the development server:
-```bash
+```sh
+npm ci
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+Open http://localhost:3000. Default lessons, games, artwork, and the disabled-chat experience require **no secrets or external API calls**.
 
-### Build for Production
+Copy `.env.example` to `.env.local` only if a developer needs the optional local AI preview. Never put credentials in source, browser storage, `NEXT_PUBLIC_*` variables, or commits.
 
-```bash
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DEEPSEEK_API_KEY` | absent | New, server-only provider credential; only needed for optional developer preview. Revoke the previously exposed key first. |
+| `SUPERFOX_CHAT_PREVIEW_ENABLED` | `false` | Exact `true` enables an unverified developer preview only under `npm run dev`. It cannot enable production chat. |
+
+The preview sends questions and supplied history to DeepSeek. Use synthetic adult test content only. The friendly prompt is not a verified child-safety system. Do not expose the development server publicly. An in-memory quota is used only for local preview, never as a production protection.
+
+## Verification
+
+```sh
+npm ci
+npx tsc --noEmit
+npm run lint
+npm test
 npm run build
+npm run scan:secrets
+npm audit
+```
+
+Lint uses ESLint's flat configuration and fails on warnings. Tests compile into ignored `.test-build/` and use Node's built-in test runner. They cover the production chat lock, invalid inputs/roles/limits, missing configuration, mocked provider failures/timeouts, navigation markup, question regressions, and progress/artwork storage. Tests do not call a paid AI API.
+
+For checks against the built server, start it in another terminal:
+
+```sh
 npm start
+npm run test:smoke
 ```
 
-## 🎨 Tech Stack
+Set `SUPERFOX_TEST_ORIGIN` to test another local port. Smoke checks verify all four routes, navigation markup, absence of advertising, restricted HTTP methods, and production-disabled chat. Browser QA additionally checks mobile/tablet/desktop layout, keyboard/focus behavior, games, drawing, narration controls, and reduced motion. Static tests alone do not prove full accessibility.
 
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS 3
-- **Animations**: Framer Motion
-- **Icons**: React Icons
-- **Fonts**: Poppins & Baloo 2 (Google Fonts)
+## Production deployment
 
-## 📁 Project Structure
+The configured repository is https://github.com/vibecoder-x/superfox-app, with primary branch `master`. Vercel uses `npm ci` and `npm run build`; a conventional host uses `npm start` after building. Do not set `NODE_ENV=development` on a public host. Leave `SUPERFOX_CHAT_PREVIEW_ENABLED=false`; a production deployment does not need a DeepSeek key in Phase 1.
 
-```
-superfox-app/
-├── app/
-│   ├── layout.tsx       # Root layout
-│   ├── page.tsx         # Home page
-│   └── globals.css      # Global styles & Tailwind
-├── components/
-│   ├── HeroSection.tsx
-│   ├── LearningWorld.tsx
-│   ├── StoryLibrary.tsx
-│   ├── MiniGames.tsx
-│   ├── AboutSuperfox.tsx
-│   ├── ParentZone.tsx
-│   └── Footer.tsx
-├── public/
-│   └── images/          # Superfox assets
-└── tailwind.config.ts   # Tailwind configuration
-```
+The compromised key must be revoked by the owner in the DeepSeek dashboard, and a fresh key added only to the appropriate server-side environment if local preview is needed. Pushing source does not prove deployment succeeded: verify the deployed build and `/api/chat` lock after deployment. Review [SECURITY.md](docs/SECURITY.md) for manual incident actions and the future production safety gates.
 
-## 🎯 Key Components
+The app contains no authentication, conversation persistence, custom analytics, or active advertising integration. Hosting and Google Fonts can receive connection information. Public privacy text describes these limits and makes no legal-compliance guarantee. Formal policies require owner and legal review.
 
-### HeroSection
-- Animated hero with floating particles
-- Call-to-action buttons
-- Responsive design with wave divider
+## Child safety and accessibility
 
-### LearningWorld
-- 4 Interactive learning modules
-- Gamified progress tracking
-- Hover animations and transitions
+Public chat remains locked until verified parental consent where required, moderation and distress handling, personal-information protection, prompt-injection defenses, distributed quotas, and privacy/retention controls are implemented and tested. A flag alone cannot remove the production lock. The current application is not certified child-safe or legally compliant.
 
-### StoryLibrary
-- Story categories (Adventure, Friendship, Nature, Science)
-- Interactive story cards with play overlays
-- Audio narration features
+Welcome and story audio start only from their playback controls. Math feedback sound starts off; children can explicitly turn it on or stop it. Reduced-motion preferences are respected, including continuous decoration, and the runner offers pause/resume. Lessons and games remain playable without sound.
 
-### MiniGames
-- Educational game cards
-- Player statistics
-- Difficulty indicators
+## Adding lessons and games later
 
-### AboutSuperfox
-- Character backstory
-- Superfox qualities showcase
-- Mission statement
+1. Extend the existing `components/math`, `components/science`, `components/creative`, `components/stories`, or `components/games` architecture. Keep the Superfox palette in `tailwind.config.ts` and existing artwork.
+2. Register actual destinations or handlers in the appropriate hub. Advertise only implemented submodes; label unfinished work Coming Soon.
+3. Use semantic buttons/links, descriptive labels, visible focus, and `ActivityDialog` for modal activities. Support touch and keyboard input, small viewports, pause controls, and reduced motion. Keep educational feedback in text as well as audio.
+4. Use bounded question generators and validate numeric answers exactly. Cancel timers when a mode changes or unmounts; `useActivityTimer` provides this behavior.
+5. Update math counters through `lib/math-progress.ts`; use `useMathProgress` to read them. Never write default counters on mount or independently overwrite the complete storage record. Keep local storage limitations visible.
+6. Keep provider credentials and safety checks server-only. Add meaningful regression tests, then run type-check, lint, tests, build, smoke, and relevant browser checks before pushing.
 
-### ParentZone
-- Safety & security information
-- Progress tracking features
-- Educational benefits
-- Platform statistics
+The final Phase 1 runtime dependency audit reports zero findings. Seven high findings remain in development tooling through one unpatched braces issue; see SECURITY.md. Do not expose the development server or process untrusted CSS/glob inputs. No forced tooling migration was performed.
 
-## 🎨 Color Palette
-
-- **Superfox Orange**: `#FF7A3D`
-- **Superfox Blue**: `#4A90E2`
-- **Superfox Yellow**: `#FFD93D`
-- **Superfox Purple**: `#9B6CFF`
-- **Superfox Green**: `#6BCF7F`
-- **Superfox Pink**: `#FF6B9D`
-
-## 🔧 Customization
-
-### Adding New Images
-
-Place images in the `public/images/` directory and reference them using:
-```tsx
-<Image src="/images/your-image.png" alt="Description" />
-```
-
-### Modifying Colors
-
-Update the color palette in `tailwind.config.ts`:
-```ts
-colors: {
-  'superfox-orange': '#FF7A3D',
-  // Add or modify colors
-}
-```
-
-### Adding Animations
-
-Use Framer Motion for custom animations:
-```tsx
-<motion.div
-  initial={{ opacity: 0 }}
-  animate={{ opacity: 1 }}
-  transition={{ duration: 0.8 }}
->
-  Content
-</motion.div>
-```
-
-## 📱 Responsive Design
-
-The site is fully responsive with breakpoints:
-- Mobile: < 768px
-- Tablet: 768px - 1024px
-- Desktop: > 1024px
-
-## ♿ Accessibility
-
-- Large, clickable buttons for kids
-- Kid-friendly navigation
-- High contrast colors
-- Screen reader compatible
-
-## 🚀 Future Enhancements
-
-- Backend integration (Firebase/Supabase)
-- User authentication
-- Progress tracking system
-- AI chat assistant
-- Voice narration for stories
-- Three.js/Spline 3D models
-- Daily "Superfox Missions"
-- Personalized bedtime stories
-
-## 📄 License
-
-This project is created for educational purposes.
-
-## 🙏 Credits
-
-- Design inspired by Pixar/Disney style
-- Fonts: Google Fonts (Poppins, Baloo 2)
-- Icons: React Icons
-- Animations: Framer Motion
-
----
-
-Made with ❤️ for curious young minds!
+Backend accounts, Reading World, additional content, parental controls, and production AI belong to later phases. Phase 1 does not implement that roadmap.
